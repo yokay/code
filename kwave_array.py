@@ -12,7 +12,7 @@ from kwave.data import Vector
 from kwave.kgrid import kWaveGrid
 from kwave.utils.conversion import tol_star
 from kwave.utils.interp import get_delta_bli
-from kwave.utils.mapgen import trim_cart_points, make_cart_rect, make_cart_arc, make_cart_bowl, make_cart_disc, make_cart_spherical_segment
+from kwave.utils.mapgen import trim_cart_points, make_cart_rect, make_cart_arc, make_cart_bowl, make_cart_disc, make_cart_spherical_segment,make_cart_planar_annulus
 from kwave.utils.math import sinc, get_affine_matrix
 from kwave.utils.matlab import matlab_assign, matlab_mask, matlab_find
 
@@ -191,46 +191,7 @@ class kWaveArray(object):
                 measure=area,
             )
         )
-    def add_planar_annular_array(self, position, diameters, focus_pos):
-        """添加2D平面环形阵列"""
-        assert isinstance(position, (list, tuple)), "'position' must be list or tuple"
-        assert isinstance(diameters, (list, tuple)), "'diameters' must be list or tuple"
-        assert isinstance(focus_pos, (list, tuple)), "'focus_pos' must be list or tuple"
-        assert len(position) == 2, "'position' must have 2 elements"
-        assert len(focus_pos) == 2, "'focus_pos' must have 2 elements"
-        assert all(len(i) == 2 for i in diameters), "'diameters' must be a list of lists, each with 2 elements"
 
-        if self.number_elements == 0:
-            self.dim = 2
-
-        if self.dim != 2:
-            raise ValueError(f"2D planar array cannot be added to an array with {self.dim}D elements.")
-
-        self.number_groups += 1
-
-        for el_ind in range(len(diameters)):
-            self.number_elements += 1
-            inner_diam, outer_diam = diameters[el_ind]
-            
-            # 计算平面环形面积公式：π*(R² - r²)
-            area = np.pi * ((outer_diam/2)**2 - (inner_diam/2)**2)
-
-            self.elements.append(
-                Element(
-                    group_id=self.number_groups,
-                    group_type="planar_annular_array",
-                    element_number=el_ind + 1,
-                    type="annulus",
-                    dim=2,
-                    position=array([*position, 0]),  # 自动补足z轴坐标为0
-                    inner_diameter=inner_diam,
-                    outer_diameter=outer_diam,
-                    focus_position=array([*focus_pos, 0]),  # 自动补足z轴坐标为0
-                    active=True,
-                    measure=area,
-                )
-            )
-        
     def add_bowl_element(self, position, radius, diameter, focus_pos):
         assert isinstance(position, (list, tuple)), "'position' must be list or tuple"
         assert isinstance(radius, (int, float)), "'radius' must be an integer or float"
@@ -264,6 +225,45 @@ class kWaveArray(object):
                 measure=area,
             )
         )
+    def add_planar_annular_array(self, position, diameters, focus_pos):
+        """添加2D平面环形阵列"""
+        assert isinstance(position, (list, tuple)), "'position' must be list or tuple"
+        assert isinstance(diameters, (list, tuple)), "'diameters' must be list or tuple"
+        assert isinstance(focus_pos, (list, tuple)), "'focus_pos' must be list or tuple"
+        assert len(position) == 3, "'position' must have 2 elements"
+        assert len(focus_pos) == 3, "'focus_pos' must have 2 elements"
+        assert all(len(i) == 2 for i in diameters), "'diameters' must be a list of lists, each with 2 elements"
+
+        if self.number_elements == 0:
+            self.dim = 3
+
+        if self.dim != 3:
+            raise ValueError(f"2D planar array cannot be added to an array with {self.dim}D elements.")
+
+        self.number_groups += 1
+
+        for el_ind in range(len(diameters)):
+            self.number_elements += 1
+            inner_diam, outer_diam = diameters[el_ind]
+            
+            # 计算平面环形面积公式：π*(R² - r²)
+            area = np.pi * ((outer_diam/2)**2 - (inner_diam/2)**2)
+
+            self.elements.append(
+                Element(
+                    group_id=self.number_groups,
+                    group_type="planar_annular_array",
+                    element_number=el_ind + 1,
+                    type="planar_annulus",
+                    dim=2,
+                    position=array(position),  
+                    inner_diameter=inner_diam,
+                    outer_diameter=outer_diam,
+                    focus_position=array(focus_pos),  
+                    active=True,
+                    measure=area,
+                )
+            )
 
     def add_custom_element(self, integration_points, measure, element_dim, label):
         assert isinstance(integration_points, (np.ndarray)), "'integration_points' must be a numpy array"
@@ -520,6 +520,17 @@ class kWaveArray(object):
                 self.affine(self.elements[element_num].focus_position),
                 m_integration,
             )
+
+        elif self.elements[element_num].type == "planar_annulus":
+            # 使用平面环形积分点生成函数
+            integration_points = make_cart_planar_annulus(
+                self.affine(self.elements[element_num].position),
+                self.elements[element_num].inner_diameter / 2,
+                self.elements[element_num].outer_diameter / 2,
+                self.affine(self.elements[element_num].focus_position),
+                m_integration,
+            )
+
 
         elif self.elements[element_num].type == "arc":
             # compute points using make_cart_arc
