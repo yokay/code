@@ -18,5 +18,5 @@ if st.button('计算'):
     st.write(f"计算得到的 AP 值为: {ap_result} cm⁴")
 
 st.write(
-    "[MYTHBIRD](https://www.mythbird.com)."
+    "Copyright © 2025 by [MYTHBIRD](https://www.mythbird.com)"
 )
