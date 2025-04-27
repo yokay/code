@@ -1,6 +1,6 @@
 import streamlit as st
 
-pg = st.navigation([st.Page("/pages/homepage.py", title="Home", icon="🏠")])
+pg = st.navigation([st.Page("/pages/homepage.py", title="Home")])
 pg.run()
 
 # 假设这是 calculate_ap 函数，你需要根据实际情况替换
