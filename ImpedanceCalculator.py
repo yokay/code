@@ -61,10 +61,10 @@ def parallel_impedance(Z1, Z2):
 st.title('电容和电感阻抗计算器')
 
 # Create input components with scientific notation support
-C = st.number_input('电容值 (μF)', value=1e0, format="%.2e")/1e6
-L = st.number_input('电感值 (μH)', value=1e0, format="%.2e")/1e6
-f_min = st.number_input('最小频率 (MHz)', value=1e-6, format="%.2e")*1e6
-f_max = st.number_input('最大频率 (MHz)', value=1e3, format="%.2e")*1e6
+C = st.number_input('电容值 (μF)', value=1e0, format="%.3e",step=1e0)/1e6
+L = st.number_input('电感值 (μH)', value=1e0, format="%.3e",step=1e1)/1e6
+f_min = st.number_input('最小频率 (MHz)', value=1e-6, format="%.3e",step=1e-3)*1e6
+f_max = st.number_input('最大频率 (MHz)', value=1e3, format="%.3e",step=1e0)*1e6
 
 # Select connection type
 connection_type = st.selectbox('连接方式', ['串联', '并联'])
