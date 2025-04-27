@@ -1,6 +1,6 @@
 import streamlit as st
 
-pg = st.navigation([st.Page("pages/homepage.py", title="Home")],[st.Page("pages/homepage.py",title="test")])
+pg = st.navigation([st.Page("homepage.py", title="Home")],[st.Page("APcalculator.py",title="test")])
 pg.run()
 
 st.write(
