@@ -1,17 +1,13 @@
 import streamlit as st
 
-st.write(
-    "Copyright © 2025 by [MYTHBIRD](https://www.mythbird.com)"
-)
+
 
 pages = {
-    "Your account": [
-        st.Page("create_account.py", title="Create your account"),
-        st.Page("manage_account.py", title="Manage your account"),
+    "Push & Pull Transformer AP Value ": [
+        st.Page("APcalculator.py", title="Calculator")
     ],
-    "Resources": [
-        st.Page("learn.py", title="Learn about us"),
-        st.Page("trial.py", title="Try it out"),
+    "Home": [
+        st.Page("homepage.py", title="Home")
     ],
 }
 
@@ -19,5 +15,7 @@ pg = st.navigation(pages)
 pg.run()
 
 
-
+st.write(
+    "Copyright © 2025 by [MYTHBIRD](https://www.mythbird.com)"
+)
 
