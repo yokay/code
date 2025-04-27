@@ -4,10 +4,10 @@ import streamlit as st
 
 pages = {
     "Push & Pull Transformer AP Value ": [
-        st.Page("APcalculator.py", title="Calculator")
+        st.Page("APcalculator.py", title="AP")
     ],
-    "Home": [
-        st.Page("homepage.py", title="Home")
+    "Cap and inductor": [
+        st.Page("ImpedanceCalculator.py", title="Impedance")
     ],
 }
 
