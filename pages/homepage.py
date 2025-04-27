@@ -17,5 +17,3 @@ f = st.number_input('开关频率 (Hz)', value=1e6)
 if st.button('计算'):
     ap_result = calculate_ap(p_out, efficiency, b_w, f)
     st.write(f"计算得到的 AP 值为: {ap_result} cm⁴")
-
-pg.run()
