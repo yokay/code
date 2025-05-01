@@ -18,21 +18,31 @@ if 'game_over' not in st.session_state:
 if 'elapsed_time' not in st.session_state:
     st.session_state.elapsed_time = 0
 
-# 侧边栏选择方格大小
-st.sidebar.title("舒尔特方格设置")
-st.session_state.grid_size = st.sidebar.selectbox("选择方格大小", [4, 5, 6, 7, 8, 9], index=1)
-
-# 添加 CSS 样式来调整按钮间距
+# 添加 CSS 样式来调整按钮间距和响应式布局
 st.markdown(
     """
     <style>
+    /* 通用按钮样式 */
     .stButton>button {
-        margin: 0px;
+        margin: 2px;
         padding: 10px;
         width: 100%;
+        min-width: 40px; /* 确保按钮有最小宽度 */
     }
     .css-12w0qpk {
         gap: 0rem;
+    }
+
+    /* 响应式布局，针对小屏幕设备（如手机） */
+    @media (max-width: 768px) {
+        .stButton>button {
+            font-size: 14px; /* 减小字体大小 */
+            padding: 8px; /* 减小内边距 */
+        }
+        /* 调整列间距 */
+        .css-1v0mbdj {
+            gap: 2px;
+        }
     }
     </style>
     """,
@@ -50,9 +60,6 @@ def reset_game():
     random.shuffle(numbers)
     st.session_state.grid = [numbers[i:i+st.session_state.grid_size] for i in range(0, len(numbers), st.session_state.grid_size)]
 
-if st.sidebar.button("开始新游戏"):
-    reset_game()
-
 # 显示计时时间
 if st.session_state.start_time and not st.session_state.game_over:
     st.session_state.elapsed_time = time.time() - st.session_state.start_time
@@ -66,8 +73,10 @@ if st.session_state.grid:
     for i in range(st.session_state.grid_size):
         for j in range(st.session_state.grid_size):
             with cols[j]:
-                if not st.session_state.game_over:
-                    if st.button(str(st.session_state.grid[i][j])):
+                # 游戏结束后禁用所有按钮
+                disabled = st.session_state.game_over
+                if st.button(str(st.session_state.grid[i][j]), key=f"active_button_{i}_{j}", disabled=disabled):
+                    if not st.session_state.game_over:
                         # 点击数字 1 时开始计时
                         if st.session_state.grid[i][j] == 1 and st.session_state.current_number == 1:
                             st.session_state.start_time = time.time()
@@ -79,9 +88,7 @@ if st.session_state.grid:
                                 st.session_state.current_number += 1
                         else:
                             st.error("点击错误，游戏结束！")
-                            reset_game()
-                else:
-                    st.button(str(st.session_state.grid[i][j]), disabled=True)
+                            st.session_state.game_over = True
 
     if st.session_state.game_over and st.session_state.end_time:
         total_time = st.session_state.end_time - st.session_state.start_time
@@ -107,3 +114,8 @@ if st.session_state.grid:
             st.markdown('<p class="rainbow-text">用时较长，继续加油呀 ⏱️</p>', unsafe_allow_html=True)
         st.balloons()
         st.write(f"总用时: {total_time:.2f} 秒")
+
+    # 将选择方格大小的选项和开始新游戏按钮放在方格下面
+    st.session_state.grid_size = st.selectbox("选择方格大小", [4, 5, 6, 7, 8, 9], index=1)
+    if st.button("开始新游戏", key="new_game_button"):
+        reset_game()
