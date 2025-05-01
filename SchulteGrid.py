@@ -32,13 +32,21 @@ st.markdown(
     padding: 0;
     min-height: 40px;
     min-width: 40px;
-    font-size: clamp(1rem, min(4vw, calc(100vw/var(--grid-size)/2)), 2rem) !important;
+    font-size: clamp(1.5rem, min(4vw, calc(90vw/var(--grid-size)/1.5)), 3rem) !important;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     transition: all 0.3s ease !important;
 }
 
+/* 手机适配 */
+@media (max-width: 768px) {
+    .stButton>button {
+        font-size: clamp(1rem, min(5vw, calc(90vw/var(--grid-size)/2)), 2rem) !important;
+    }
+}
  /* 主容器样式 */
     .css-1v0mbdj {
         gap: 4px !important;
@@ -103,15 +111,8 @@ def reset_game():
     st.text(str(st.session_state.current_number))
     st.rerun()  # 刷新整个界面
 
-# 显示计时时间
-if st.session_state.start_time and not st.session_state.game_over:
-    st.session_state.elapsed_time = time.time() - st.session_state.start_time
-st.markdown(f"已用时: {st.session_state.elapsed_time:.2f} 秒", unsafe_allow_html=True)
-
 # 游戏主界面
 if st.session_state.grid:
-    st.title("舒尔特方格训练")
-
     cols = st.columns(st.session_state.grid_size)
     for i in range(st.session_state.grid_size):
         for j in range(st.session_state.grid_size):
@@ -168,7 +169,17 @@ if st.session_state.grid:
         st.balloons()
         st.write(f"总用时: {total_time:.2f} 秒")
 
-# 将选择方格大小的选项和开始新游戏按钮放在方格下面
-st.session_state.grid_size = st.selectbox("选择方格大小", [4, 5, 6, 7, 8, 9], index=1)
-if st.button("开始新游戏", key="new_game_button"):
-    reset_game()
+# 将控制面板移动到侧边栏
+with st.sidebar:
+    st.header("游戏设置")
+    st.session_state.grid_size = st.selectbox(
+        "选择方格大小", 
+        [4, 5, 6, 7, 8, 9], 
+        index=1
+    )
+    
+    if st.button("开始新游戏", 
+                key="new_game_button",
+                use_container_width=True,
+                help="点击开始新的游戏"):
+        reset_game()
