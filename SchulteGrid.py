@@ -26,12 +26,8 @@ st.markdown(
     .stButton>button {
         margin: 2px;
         padding: 0;
-        width: calc(100vw/var(--grid-size) ) !important;
+        width: 100%;
         min-width: 40px; /* 确保按钮有最小宽度 */
-        flex-shrink: 0; 
-        display: flex;
-        align-items: center;
-        justify-content: center;
     }
     .css-12w0qpk {
         gap: 0rem;
@@ -39,11 +35,11 @@ st.markdown(
 
  /* 主容器样式 */
     .css-1v0mbdj {
-        gap: 2px !important;
+        gap: 4px !important;
         flex-wrap: nowrap !important;
-        width: calc(100vw/var(--grid-size) ) !important;
+        width: 100vw !important;
         overflow-x: auto !important;  /* 允许水平滚动 */
-        padding: 0 2px !important;
+        padding: 0 4px !important;
     }
 
     /* 隐藏水平滚动条 */
