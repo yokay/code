@@ -63,7 +63,7 @@ with st.sidebar:
             st.session_state.show_answer = not getattr(st.session_state, 'show_answer', False)
 
 # 生成数独
-if generate_clicked:
+if st.session_state.generate_clicked :
     st.session_state.puzzles = []
     st.session_state.answers = []
     for _ in range(2):
