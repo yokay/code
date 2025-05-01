@@ -23,15 +23,21 @@ st.markdown(
     """
     <style>
     /* 通用按钮样式 */
-    .stButton>button {
-        margin: 2px;
-        padding: 0;
-        width: 100%;
-        min-width: 40px; /* 确保按钮有最小宽度 */
-    }
-    .css-12w0qpk {
-        gap: 0rem;
-    }
+.stButton>button {
+    aspect-ratio: 1/1 !important;
+    width: 100% !important;
+    height: auto !important;
+    /* 保持原有其他样式 */
+    margin: 2px;
+    padding: 0;
+    min-height: 40px;
+    min-width: 40px;
+    font-size: clamp(1rem, min(4vw, calc(100vw/var(--grid-size)/2)), 2rem) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease !important;
+}
 
  /* 主容器样式 */
     .css-1v0mbdj {
@@ -46,15 +52,36 @@ st.markdown(
     .css-1v0mbdj::-webkit-scrollbar {
         display: none;
     }
-
-    /* 动态尺寸控制 */
-    <script>
-    function updateGridSize() {
-        const size = parseInt(document.querySelector('[data-testid="stSelectbox"] select').value);
-        document.documentElement.style.setProperty('--grid-size', size);
+    /* 在现有按钮样式中添加 */
+    .stButton>button {
+        transition: all 0.3s ease !important;
     }
-    setInterval(updateGridSize, 300);
-    </script>
+    
+    /* 按钮点击效果 */
+    .stButton>button:active {
+        background-color: #4CAF50 !important;
+        transform: scale(0.98);
+    }
+    
+    /* 正确点击效果 */
+    .stButton>button:focus:not(:active) {
+        background-color: #4CAF50 !important;
+    }
+    
+    /* 错误点击效果 */
+    .stButton>button.error-click {
+        background-color: #ff4444 !important;
+        animation: shake 0.5s;
+    }
+
+    @keyframes shake {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        50% { transform: translateX(5px); }
+        75% { transform: translateX(-3px); }
+        100% { transform: translateX(0); }
+    }
+
     </style>
     """,
     unsafe_allow_html=True
@@ -103,6 +130,16 @@ if st.session_state.grid:
                             else:
                                 st.session_state.current_number += 1
                         else:
+                            # 添加错误点击效果
+                            st.markdown("""
+                            <script>
+                            setTimeout(() => {
+                                const errorBtn = document.querySelector('button[data-testid="baseButton-secondary"]:not([disabled])');
+                                errorBtn.classList.add('error-click');
+                                setTimeout(() => errorBtn.classList.remove('error-click'), 500);
+                            }, 10);
+                            </script>
+                            """, unsafe_allow_html=True)
                             st.error("点击错误，游戏结束！")
                             st.session_state.game_over = True
 
