@@ -22,18 +22,24 @@ if 'elapsed_time' not in st.session_state:
 st.markdown(
     """
     <style>
+    # 修改按钮容器和按钮样式
+.css-1v0mbdj {
+    gap: 0 !important;  /* 消除列间隙 */
+    padding: 0 !important;
+}
+
     /* 通用按钮样式 */
 .stButton>button {
     aspect-ratio: 1/1 !important;
     width: 100% !important;
-    height: auto !important;
+    height: 100%  !important;
     /* 保持原有其他样式 */
-    margin: 2px;
+    margin: 0;
     padding: 0;
-    min-height: 40px;
-    min-width: 40px;
-    font-size: clamp(1.5rem, min(4vw, calc(90vw/var(--grid-size)/1.5)), 3rem) !important;
-    font-weight: 700;
+    min-height: 10px;
+    min-width: 10px;
+    font-size: 2.5rem !important;
+    font-family: Arial, sans-serif !important;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     display: flex !important;
     align-items: center !important;
@@ -44,7 +50,7 @@ st.markdown(
 /* 手机适配 */
 @media (max-width: 768px) {
     .stButton>button {
-        font-size: clamp(1rem, min(5vw, calc(90vw/var(--grid-size)/2)), 2rem) !important;
+       font-size: 1.8rem !important;
     }
 }
  /* 主容器样式 */
