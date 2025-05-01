@@ -1,23 +1,23 @@
 import streamlit as st
-import sudokum
+from sudoku import Sudoku
 import numpy as np
 
 def generate_sudoku(difficulty):
-    # 设置难度级别对应的挖空比例
+    # 映射难度级别
     difficulty_map = {
-        "简单": 0.3,  # 保留70%数字
-        "中等": 0.5,  # 保留50%数字
-        "困难": 0.65  # 保留35%数字
+        "简单": 0.3,  # 对应easy
+        "中等": 0.5,  # 对应medium
+        "困难": 0.7   # 对应hard
     }
     
-    # 生成标准数独（保证唯一解）
-    matrix = sudokum.generate(3)  # 3表示标准9x9数独
-    solution = matrix.copy()
+    # 创建数独实例
+    puzzle = Sudoku(3, 3).difficulty(difficulty_map[difficulty])
     
-    # 按难度挖空（保持唯一解）
-    sudokum.mask(matrix, difficulty_map[difficulty])
+    # 获取题目和答案
+    question = np.array(puzzle.board)
+    answer = np.array(puzzle.solve().board)
     
-    return matrix, solution
+    return question, answer
 
 def display_sudoku(sudoku, answer=None):
     html = """<table cellspacing='0' cellpadding='1' style='
