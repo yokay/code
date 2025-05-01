@@ -25,20 +25,30 @@ st.markdown(
     /* 通用按钮样式 */
     .stButton>button {
         margin: 2px;
-        padding: 10px;
-        width: 100%;
+        padding: 0;
+        width: calc(100vw/var(--grid-size) ) !important;
         min-width: 40px; /* 确保按钮有最小宽度 */
+        flex-shrink: 0; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     .css-12w0qpk {
         gap: 0rem;
     }
 
-/* 主容器样式 */
+ /* 主容器样式 */
     .css-1v0mbdj {
-        gap: 2px !important;
+        gap: 4px !important;
         flex-wrap: nowrap !important;
-        width: max-content !important;  /* 容器宽度根据内容自适应 */
-        margin: 0 auto !important;  /* 水平居中 */
+        width: 100vw !important;
+        overflow-x: auto !important;  /* 允许水平滚动 */
+        padding: 0 4px !important;
+    }
+
+    /* 隐藏水平滚动条 */
+    .css-1v0mbdj::-webkit-scrollbar {
+        display: none;
     }
 
     /* 动态尺寸控制 */
@@ -46,15 +56,9 @@ st.markdown(
     function updateGridSize() {
         const size = parseInt(document.querySelector('[data-testid="stSelectbox"] select').value);
         document.documentElement.style.setProperty('--grid-size', size);
-        document.querySelectorAll('.stButton > button').forEach(button => {
-            button.style.width = `calc(${100/size}% - 4px)`;  // 根据网格尺寸动态计算宽度
-        });
     }
-    setInterval(updateGridSize, 500);
+    setInterval(updateGridSize, 300);
     </script>
-    
-    /* 允许页面缩放 */
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </style>
     """,
     unsafe_allow_html=True
