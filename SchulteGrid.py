@@ -59,6 +59,11 @@ def reset_game():
     numbers = list(range(1, st.session_state.grid_size ** 2 + 1))
     random.shuffle(numbers)
     st.session_state.grid = [numbers[i:i+st.session_state.grid_size] for i in range(0, len(numbers), st.session_state.grid_size)]
+    st.text("游戏已重置，当前方格状态：")
+    st.text(str(st.session_state.grid))
+    st.text("当前需要点击的数字：")
+    st.text(str(st.session_state.current_number))
+    st.rerun()  # 刷新整个界面
 
 # 显示计时时间
 if st.session_state.start_time and not st.session_state.game_over:
@@ -78,7 +83,7 @@ if st.session_state.grid:
                 if st.button(str(st.session_state.grid[i][j]), key=f"active_button_{i}_{j}", disabled=disabled):
                     if not st.session_state.game_over:
                         # 点击数字 1 时开始计时
-                        if st.session_state.grid[i][j] == 1 and st.session_state.current_number == 1:
+                        if st.session_state.grid[i][j] == 1 and st.session_state.current_number == 1 and st.session_state.start_time is None:
                             st.session_state.start_time = time.time()
                         if st.session_state.grid[i][j] == st.session_state.current_number:
                             if st.session_state.current_number == st.session_state.grid_size ** 2:
@@ -115,7 +120,7 @@ if st.session_state.grid:
         st.balloons()
         st.write(f"总用时: {total_time:.2f} 秒")
 
-    # 将选择方格大小的选项和开始新游戏按钮放在方格下面
-    st.session_state.grid_size = st.selectbox("选择方格大小", [4, 5, 6, 7, 8, 9], index=1)
-    if st.button("开始新游戏", key="new_game_button"):
-        reset_game()
+# 将选择方格大小的选项和开始新游戏按钮放在方格下面
+st.session_state.grid_size = st.selectbox("选择方格大小", [4, 5, 6, 7, 8, 9], index=1)
+if st.button("开始新游戏", key="new_game_button"):
+    reset_game()
