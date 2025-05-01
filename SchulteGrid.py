@@ -39,11 +39,11 @@ st.markdown(
 
  /* 主容器样式 */
     .css-1v0mbdj {
-        gap: 4px !important;
+        gap: 2px !important;
         flex-wrap: nowrap !important;
-        width: 100vw !important;
+        width: calc(100vw/var(--grid-size) ) !important;
         overflow-x: auto !important;  /* 允许水平滚动 */
-        padding: 0 4px !important;
+        padding: 0 2px !important;
     }
 
     /* 隐藏水平滚动条 */
