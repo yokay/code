@@ -33,17 +33,28 @@ st.markdown(
         gap: 0rem;
     }
 
-    /* 响应式布局，针对小屏幕设备（如手机） */
-    @media (max-width: 768px) {
-        .stButton>button {
-            font-size: 14px; /* 减小字体大小 */
-            padding: 8px; /* 减小内边距 */
-        }
-        /* 调整列间距 */
-        .css-1v0mbdj {
-            gap: 2px;
-        }
+/* 主容器样式 */
+    .css-1v0mbdj {
+        gap: 2px !important;
+        flex-wrap: nowrap !important;
+        width: max-content !important;  /* 容器宽度根据内容自适应 */
+        margin: 0 auto !important;  /* 水平居中 */
     }
+
+    /* 动态尺寸控制 */
+    <script>
+    function updateGridSize() {
+        const size = parseInt(document.querySelector('[data-testid="stSelectbox"] select').value);
+        document.documentElement.style.setProperty('--grid-size', size);
+        document.querySelectorAll('.stButton > button').forEach(button => {
+            button.style.width = `calc(${100/size}% - 4px)`;  // 根据网格尺寸动态计算宽度
+        });
+    }
+    setInterval(updateGridSize, 500);
+    </script>
+    
+    /* 允许页面缩放 */
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </style>
     """,
     unsafe_allow_html=True
