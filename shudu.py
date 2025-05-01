@@ -23,7 +23,7 @@ def display_sudoku(sudoku, answer=None):
     html = """<table cellspacing='0' cellpadding='1' style='
         border:2px solid #000;
         margin:5px auto;
-        width: 360px;'>"""
+        width: 250px;'>"""
     for i in range(9):
         html += "<tr>"
         for j in range(9):
@@ -38,7 +38,7 @@ def display_sudoku(sudoku, answer=None):
             elif answer is not None:
                 num = f"<span style='color:red'>{answer[i][j]}</span>"
             
-            html += f"<td style='width:40px;height:40px;text-align:center;" \
+            html += f"<td style='width:25px;height:25px;text-align:center;" \
                     f"font-size:24px;font-family:Arial,sans-serif;{';'.join(border)}'>" \
                     f"{num}</td>"
         html += "</tr>"
