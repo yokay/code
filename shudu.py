@@ -13,12 +13,13 @@ def generate_sudoku(difficulty):
     
     # 创建数独实例并同步生成答案
     puzzle = Sudoku(3, 3).difficulty(difficulty_map[difficulty])
-    puzzle.show()
     solution = puzzle.solve()
-    solution.show()
     
-    # 转换为numpy数组
-    return np.array(puzzle.board), np.array(solution.board)
+    # 转换时直接将0替换为空字符串
+    question = np.where(np.array(puzzle.board) == 0, '', np.array(puzzle.board))
+    solution = np.array(solution.board)
+    
+    return question, solution
 
 def display_sudoku(sudoku, answer=None):
     html = """<table cellspacing='0' cellpadding='1' style='
@@ -32,11 +33,9 @@ def display_sudoku(sudoku, answer=None):
             if i % 3 == 0: border.append("border-top:2px solid #000")
             if j % 3 == 0: border.append("border-left:2px solid #000")
             
-            # 确保空单元格始终显示为空
-            num = ""
-            if sudoku[i][j] != 0:
-                num = str(sudoku[i][j])
-            elif answer is not None and answer[i][j] != 0:  # 增加有效性检查
+            # 直接使用单元格内容
+            num = str(sudoku[i][j]) if sudoku[i][j] != '' else ''
+            if answer is not None and sudoku[i][j] == '':
                 num = f"<span style='color:red'>{answer[i][j]}</span>"
             
             html += f"<td style='width:40px;height:40px;text-align:center;" \
