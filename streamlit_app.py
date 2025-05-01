@@ -1,7 +1,5 @@
 import streamlit as st
 
-
-
 pages = {
     "Push & Pull Transformer AP Value ": [
         st.Page("APcalculator.py", title="AP")
@@ -13,7 +11,7 @@ pages = {
         st.Page("SchulteGrid.py", title="Schulte Grid")
     ],
     "Unit Calc": [
-        st.Page("UnitCalculator.py", title="Unit Calc")
+        st.Page("unitCal.py", title="Unit Calc")
     ]
 }
 
