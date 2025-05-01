@@ -13,7 +13,9 @@ def generate_sudoku(difficulty):
     
     # 创建数独实例并同步生成答案
     puzzle = Sudoku(3, 3).difficulty(difficulty_map[difficulty])
+    puzzle.show()
     solution = puzzle.solve()
+    solution.show()
     
     # 转换为numpy数组
     return np.array(puzzle.board), np.array(solution.board)
@@ -23,7 +25,7 @@ def display_sudoku(sudoku, answer=None):
     html = """<table cellspacing='0' cellpadding='1' style='
         border:2px solid #000;
         margin:5px auto;
-        width: 250px;'>"""
+        width: 200px;'>"""
     for i in range(9):
         html += "<tr>"
         for j in range(9):
@@ -48,15 +50,17 @@ def display_sudoku(sudoku, answer=None):
 # 页面设置
 st.set_page_config(layout="centered")
 
-# 侧边栏控件
+# 在侧边栏设置部分修改按钮逻辑
 with st.sidebar:
     st.header("设置选项")
     difficulty = st.selectbox("选择难度", ["简单", "中等", "困难"])
     col1, col2 = st.columns(2)
     with col1:
-        generate_clicked = st.button("生成新数独")
+        if st.button("生成新数独"):
+            st.session_state.generate_clicked = True
     with col2:
-        show_answer = st.button("显示答案")
+        if st.button("显示答案"):
+            st.session_state.show_answer = not getattr(st.session_state, 'show_answer', False)
 
 # 生成数独
 if generate_clicked:
@@ -67,17 +71,19 @@ if generate_clicked:
         st.session_state.puzzles.append(puzzle)
         st.session_state.answers.append(solution)
 
-# 显示数独
+# 在显示部分修改状态判断
 if 'puzzles' in st.session_state:
-    use_answer = st.session_state.answers if show_answer else [None]*2
+    # 获取持久化的显示答案状态
+    show_answer = getattr(st.session_state, 'show_answer', False)
     for i in range(2):
         with st.container():
-            if i < len(st.session_state.puzzles):
-                st.markdown(display_sudoku(
-                    st.session_state.puzzles[i],
-                    use_answer[i] if i < len(use_answer) else None
-                ), unsafe_allow_html=True)
-                st.write("")
+            # 确保传递完整的答案数据
+            answer = st.session_state.answers[i] if show_answer and i < len(st.session_state.answers) else None
+            st.markdown(display_sudoku(
+                st.session_state.puzzles[i], 
+                answer
+            ), unsafe_allow_html=True)
+            st.write("")
 
 # 打印样式
 st.markdown("""
