@@ -12,6 +12,9 @@ pages = {
     "Schulte Grid": [
         st.Page("SchulteGrid.py", title="Schulte Grid")
     ],
+    "Unit Calc": [
+        st.Page("UnitCalculator.py", title="Unit Calc")
+    ]
 }
 
 pg = st.navigation(pages)
