@@ -2,6 +2,7 @@ import streamlit as st
 from sudoku import Sudoku
 import numpy as np
 
+# 修改生成逻辑确保答案同步生成
 def generate_sudoku(difficulty):
     # 映射难度级别
     difficulty_map = {
@@ -10,15 +11,14 @@ def generate_sudoku(difficulty):
         "困难": 0.7   # 对应hard
     }
     
-    # 创建数独实例
+    # 创建数独实例并同步生成答案
     puzzle = Sudoku(3, 3).difficulty(difficulty_map[difficulty])
+    solution = puzzle.solve()
     
-    # 获取题目和答案
-    question = np.array(puzzle.board)
-    answer = np.array(puzzle.solve().board)
-    
-    return question, answer
+    # 转换为numpy数组
+    return np.array(puzzle.board), np.array(solution.board)
 
+# 修改display_sudoku函数中的数字显示逻辑
 def display_sudoku(sudoku, answer=None):
     html = """<table cellspacing='0' cellpadding='1' style='
         border:2px solid #000;
@@ -31,6 +31,7 @@ def display_sudoku(sudoku, answer=None):
             if i % 3 == 0: border.append("border-top:2px solid #000")
             if j % 3 == 0: border.append("border-left:2px solid #000")
             
+            # 修改显示逻辑
             num = ""
             if sudoku[i][j] != 0:
                 num = str(sudoku[i][j])
