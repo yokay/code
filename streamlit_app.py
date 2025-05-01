@@ -12,6 +12,9 @@ pages = {
     ],
     "Unit Calc": [
         st.Page("unitCal.py", title="Unit Calc")
+    ],
+    "Sudoku": [
+        st.Page("shudu.py", title="Sudoku") 
     ]
 }
 
