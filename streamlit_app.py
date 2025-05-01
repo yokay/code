@@ -9,6 +9,9 @@ pages = {
     "Cap and inductor": [
         st.Page("ImpedanceCalculator.py", title="Impedance")
     ],
+    "Schulte Grid": [
+        st.Page("SchulteGrid.py", title="Schulte Grid")
+    ],
 }
 
 pg = st.navigation(pages)
