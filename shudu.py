@@ -20,12 +20,11 @@ def generate_sudoku(difficulty):
     # 转换为numpy数组
     return np.array(puzzle.board), np.array(solution.board)
 
-# 修改display_sudoku函数中的数字显示逻辑
 def display_sudoku(sudoku, answer=None):
     html = """<table cellspacing='0' cellpadding='1' style='
         border:2px solid #000;
         margin:5px auto;
-        width: 200px;'>"""
+        width: 360px;'>"""
     for i in range(9):
         html += "<tr>"
         for j in range(9):
@@ -33,14 +32,14 @@ def display_sudoku(sudoku, answer=None):
             if i % 3 == 0: border.append("border-top:2px solid #000")
             if j % 3 == 0: border.append("border-left:2px solid #000")
             
-            # 修改显示逻辑
+            # 确保空单元格始终显示为空
             num = ""
             if sudoku[i][j] != 0:
                 num = str(sudoku[i][j])
-            elif answer is not None:
+            elif answer is not None and answer[i][j] != 0:  # 增加有效性检查
                 num = f"<span style='color:red'>{answer[i][j]}</span>"
             
-            html += f"<td style='width:25px;height:25px;text-align:center;" \
+            html += f"<td style='width:40px;height:40px;text-align:center;" \
                     f"font-size:24px;font-family:Arial,sans-serif;{';'.join(border)}'>" \
                     f"{num}</td>"
         html += "</tr>"
