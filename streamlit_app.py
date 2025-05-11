@@ -14,7 +14,7 @@ pages = {
         st.Page("unitCal.py", title="Unit Calc")
     ],
     "TO DO OR NOT TO DO": [
-        st.Page("DO OR NOT TO DO.py", title="DO OR NOT TO DO")
+        st.Page("DOORNOTTODO.py", title="DO OR NOT TO DO")
     ]
 }
 
