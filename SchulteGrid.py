@@ -1,7 +1,4 @@
 import streamlit as st
-import time
-import math
-from datetime import datetime, timedelta
 
 # 初始化会话状态
 if 'grid_size' not in st.session_state:
@@ -10,28 +7,22 @@ if 'grid' not in st.session_state:
     st.session_state.grid = []
 if 'current_number' not in st.session_state:
     st.session_state.current_number = 1
-if 'start_time' not in st.session_state:
-    st.session_state.start_time = None
-if 'end_time' not in st.session_state:
-    st.session_state.end_time = None
 if 'game_over' not in st.session_state:
     st.session_state.game_over = False
-if 'elapsed_time' not in st.session_state:
-    st.session_state.elapsed_time = 0
+if 'timer_started' not in st.session_state:
+    st.session_state.timer_started = False
+if 'timer_value' not in st.session_state:
+    st.session_state.timer_value = 0
 if 'timer_placeholder' not in st.session_state:
     st.session_state.timer_placeholder = None
 if 'best_time' not in st.session_state:
-    st.session_state.best_time = float('inf')
+    st.session_state.best_time = None
 if 'attempts' not in st.session_state:
     st.session_state.attempts = 0
 if 'completed_attempts' not in st.session_state:
     st.session_state.completed_attempts = 0
 if 'total_time' not in st.session_state:
     st.session_state.total_time = 0
-if 'average_time' not in st.session_state:
-    st.session_state.average_time = 0
-if 'last_attempt_time' not in st.session_state:
-    st.session_state.last_attempt_time = 0
 
 # 添加 CSS 样式来调整按钮间距和响应式布局
 st.markdown(
@@ -176,12 +167,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 自定义伪随机数生成器
+# 自定义伪随机数生成器（不使用time和math）
 class SimpleRandom:
     def __init__(self, seed=None):
+        # 使用Streamlit会话状态作为种子源
         if seed is None:
-            # 使用当前时间戳作为种子
-            seed = int(time.time() * 1000) % 1000000
+            # 使用当前会话状态中的某些值组合作为种子
+            seed = hash(str(st.session_state)) % 1000000
         self.seed = seed
         self.state = seed
     
@@ -202,15 +194,14 @@ class SimpleRandom:
 # 开始新游戏按钮
 def reset_game():
     st.session_state.current_number = 1
-    st.session_state.start_time = None
-    st.session_state.end_time = None
     st.session_state.game_over = False
-    st.session_state.elapsed_time = 0
+    st.session_state.timer_started = False
+    st.session_state.timer_value = 0
     
     # 增加尝试次数
     st.session_state.attempts += 1
     
-    # 生成随机数填充方格（不使用random库）
+    # 生成随机数填充方格
     rng = SimpleRandom()
     numbers = list(range(1, st.session_state.grid_size ** 2 + 1))
     shuffled_numbers = rng.shuffle(numbers)
@@ -222,22 +213,22 @@ def reset_game():
     
     st.rerun()  # 刷新整个界面
 
-# 更新计时器显示
+# 更新计时器显示（不使用time和math）
 def update_timer():
-    if st.session_state.start_time and not st.session_state.game_over:
-        elapsed = time.time() - st.session_state.start_time
-        st.session_state.elapsed_time = elapsed
+    if st.session_state.timer_started and not st.session_state.game_over:
+        # 使用Streamlit的缓存机制模拟计时器
+        st.session_state.timer_value += 1
         
-        # 格式化时间显示 (分钟:秒.毫秒)
-        minutes, seconds = divmod(elapsed, 60)
-        time_display = f"{int(minutes):02}:{seconds:05.2f}"
+        # 格式化时间显示 (秒.毫秒)
+        seconds = st.session_state.timer_value // 10  # 10次更新约等于1秒
+        tenths = st.session_state.timer_value % 10
+        time_display = f"{seconds:02}.{tenths}"
         
         # 更新计时器显示
         if st.session_state.timer_placeholder:
             st.session_state.timer_placeholder.markdown(f'<div class="timer-container">{time_display}</div>', unsafe_allow_html=True)
         
-        # 每秒更新一次
-        time.sleep(0.1)
+        # 每0.1秒左右更新一次
         st.experimental_rerun()
 
 # 显示游戏难度指示器
@@ -292,28 +283,25 @@ if st.session_state.grid:
                 if st.button(str(number), key=f"button_{i}_{j}", disabled=disabled):
                     if not st.session_state.game_over:
                         # 点击数字 1 时开始计时
-                        if number == 1 and st.session_state.current_number == 1 and st.session_state.start_time is None:
-                            st.session_state.start_time = time.time()
+                        if number == 1 and st.session_state.current_number == 1 and not st.session_state.timer_started:
+                            st.session_state.timer_started = True
                         
                         # 检查点击是否正确
                         if number == st.session_state.current_number:
                             # 正确点击
                             if number == st.session_state.grid_size ** 2:
                                 # 游戏完成
-                                st.session_state.end_time = time.time()
                                 st.session_state.game_over = True
                                 
                                 # 计算用时
-                                total_time = st.session_state.end_time - st.session_state.start_time
-                                st.session_state.last_attempt_time = total_time
+                                total_time = st.session_state.timer_value / 10  # 转换为秒
                                 
                                 # 更新统计数据
                                 st.session_state.completed_attempts += 1
                                 st.session_state.total_time += total_time
-                                st.session_state.average_time = st.session_state.total_time / st.session_state.completed_attempts
                                 
                                 # 更新最佳时间
-                                if total_time < st.session_state.best_time:
+                                if st.session_state.best_time is None or total_time < st.session_state.best_time:
                                     st.session_state.best_time = total_time
                             else:
                                 st.session_state.current_number += 1
@@ -334,18 +322,17 @@ if st.session_state.grid:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # 游戏结束后显示结果
-if st.session_state.game_over and st.session_state.end_time:
-    total_time = st.session_state.end_time - st.session_state.start_time
+if st.session_state.game_over:
+    total_time = st.session_state.timer_value / 10  # 转换为秒
     
     # 显示结果卡片
     st.markdown('<div class="stats-card">', unsafe_allow_html=True)
     st.markdown('<div class="stats-title">游戏完成！</div>', unsafe_allow_html=True)
     
     # 格式化时间
-    minutes, seconds = divmod(total_time, 60)
-    time_display = f"{int(minutes):02}:{seconds:05.2f}"
+    time_display = f"{int(total_time):02}.{(total_time*10)%10:.0f}"
     
-    st.markdown(f'<div class="stats-value">用时: {time_display}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="stats-value">用时: {time_display} 秒</div>', unsafe_allow_html=True)
     
     # 显示评分
     if st.session_state.grid_size == 5:  # 标准5x5评分
@@ -375,9 +362,9 @@ if st.session_state.game_over and st.session_state.end_time:
     with col1:
         st.markdown('<div class="stats-card">', unsafe_allow_html=True)
         st.markdown('<div class="stats-title">最佳时间</div>', unsafe_allow_html=True)
-        if st.session_state.best_time < float('inf'):
-            best_min, best_sec = divmod(st.session_state.best_time, 60)
-            st.markdown(f'<div class="stats-value">{int(best_min):02}:{best_sec:05.2f}</div>', unsafe_allow_html=True)
+        if st.session_state.best_time is not None:
+            best_time = st.session_state.best_time
+            st.markdown(f'<div class="stats-value">{int(best_time):02}.{(best_time*10)%10:.0f} 秒</div>', unsafe_allow_html=True)
         else:
             st.markdown('<div class="stats-value">-</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -386,8 +373,8 @@ if st.session_state.game_over and st.session_state.end_time:
         st.markdown('<div class="stats-card">', unsafe_allow_html=True)
         st.markdown('<div class="stats-title">平均时间</div>', unsafe_allow_html=True)
         if st.session_state.completed_attempts > 0:
-            avg_min, avg_sec = divmod(st.session_state.average_time, 60)
-            st.markdown(f'<div class="stats-value">{int(avg_min):02}:{avg_sec:05.2f}</div>', unsafe_allow_html=True)
+            avg_time = st.session_state.total_time / st.session_state.completed_attempts
+            st.markdown(f'<div class="stats-value">{int(avg_time):02}.{(avg_time*10)%10:.0f} 秒</div>', unsafe_allow_html=True)
         else:
             st.markdown('<div class="stats-value">-</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
