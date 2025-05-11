@@ -1032,7 +1032,7 @@ if st.button("下载计算数据"):
     df = pd.DataFrame(data)
     
     # 创建CSV文件并提供下载
-    csv = df.to_csv(sep='\t', na_rep='nan')
+    csv = df.to_csv(sep=',', na_rep='nan')
     st.download_button(
         label="下载数据 (CSV)",
         data=csv,
