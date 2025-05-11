@@ -57,10 +57,12 @@ unit_groups = {
 }
 
 def convert(value, from_unit, to_unit, units):
+    """将值从一个单位转换为另一个单位"""
     base_value = value * units[from_unit]
     return base_value / units[to_unit]
 
 def convert_time(hour, minute, second, am_pm, conversion_type):
+    """转换时间格式（24小时制与12小时制之间）"""
     try:
         if conversion_type == "24":
             if am_pm == "PM" and hour != 12:
@@ -76,17 +78,33 @@ def convert_time(hour, minute, second, am_pm, conversion_type):
     except:
         return "无效时间"
 
+# 设置页面配置
+st.set_page_config(
+    page_title="单位换算器",
+    page_icon="🔄",
+    layout="wide"
+)
+
+# 应用标题和描述
 st.title("单位换算器")
+st.markdown("这是一个多功能单位换算器，支持多种单位类型的换算以及时间格式的转换。")
+
+# 选择换算类别
 category = st.selectbox("选择换算类别", list(unit_groups.keys()))
 
+# 根据选择的类别进行不同的处理
 if "格式" in category:
+    # 时间格式转换
     units = unit_groups[category]
+    
+    # 使用列布局使界面更美观
     col1, col2 = st.columns(2)
     with col1:
         from_unit = st.selectbox("从", options=list(units.keys()))
     with col2:
         to_unit = st.selectbox("到", options=list(units.keys()))
     
+    # 时间输入
     cols = st.columns(3)
     with cols[0]:
         hour = st.number_input("时", 0, 23 if from_unit.startswith("24") else 12, step=1)
@@ -95,30 +113,45 @@ if "格式" in category:
     with cols[2]:
         second = st.number_input("秒", 0, 59, 0)
     
+    # 如果是12小时制，需要选择上午/下午
     if from_unit.startswith("12"):
         am_pm = st.selectbox("上午/下午", ["AM", "PM"], index=0)
     else:
         am_pm = ""
     
+    # 转换按钮
     if st.button("转换"):
         result = convert_time(hour, minute, second, am_pm, units[from_unit])
         st.success(f"转换结果: {result}")
 else:
+    # 普通单位换算
     units = unit_groups[category]
+    
+    # 使用列布局使界面更美观
     col1, col2 = st.columns(2)
     with col1:
         from_unit = st.selectbox("从", options=list(units.keys()))
     with col2:
         to_unit = st.selectbox("到", options=list(units.keys()))
     
+    # 输入要转换的值
     value = st.number_input("输入数值", value=1.0, step=0.1, format="%.6g")
+    
+    # 选择结果显示精度
     precision_mode = st.radio("显示精度", ["小数", "整数"], horizontal=True)
     
+    # 执行转换
     result = convert(value, from_unit, to_unit, units)
     
+    # 根据精度模式格式化结果
     if precision_mode == "整数":
         result_str = f"{round(result):,}"
     else:
         result_str = f"{result:.4f}"
     
+    # 显示结果
     st.success(f"换算结果: {value:.6g} {from_unit} = {result_str} {to_unit}")
+
+# 页脚信息
+st.markdown("---")
+st.markdown("© 2025 单位换算器 | 设计与开发")    
