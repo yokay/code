@@ -36,6 +36,7 @@ check_items = {
 }
 
 # 应用标题和介绍
+# 应用标题和介绍
 st.title('DO OR NOT TO DO 决策评估系统')
 with st.expander("ℹ️ 关于这个应用", expanded=False):
     st.markdown("""
@@ -140,7 +141,11 @@ with col2:
             {
                 "名称": h["name"],
                 "日期": h["date"],
-                "得分": h["total_score"]
+                "得分": h["total_score"],
+                "建议": "🔥 强烈建议去做" if h["total_score"] >= 4.0 
+                      else "👍 可以考虑" if h["total_score"] >= 3.0 
+                      else "⚠️ 谨慎考虑" if h["total_score"] >= 2.0 
+                      else "🚫 不建议"
             } for h in st.session_state.history
         ])
         st.dataframe(history_df, use_container_width=True)
@@ -152,14 +157,21 @@ with col2:
             format_func=lambda x: f"{x} ({next(h['date'] for h in st.session_state.history if h['name'] == x)})"
         )
         
+        # 在历史记录详情部分添加建议显示        
         if selected_history:
             hist = next(h for h in st.session_state.history if h["name"] == selected_history)
             st.write(f"**{selected_history}** - {hist['date']}")
             st.write(f"最终得分: {hist['total_score']:.2f}")
-            if show_details:
-                st.write("### 分类得分:")
-                for cat, score in hist["category_scores"].items():
-                    st.write(f"- {cat}: {score:.2f}")
+            
+            # 新增建议显示
+            if hist["total_score"] >= 4.0:
+                st.success('🔥 **强烈建议去做**')
+            elif hist["total_score"] >= 3.0:
+                st.warning('👍 **可以考虑去做**')
+            elif hist["total_score"] >= 2.0:
+                st.warning('⚠️ **建议谨慎考虑**')
+            else:
+                st.error('🚫 **不建议去做**')
 
 # 详细评分展示
 if show_details:
