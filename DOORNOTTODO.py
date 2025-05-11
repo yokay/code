@@ -148,9 +148,9 @@ scatter = ax.scatter(x, y, z,
                     edgecolors='w')
 
 # 设置坐标轴标签
-ax.set_xlabel('是否有意义 →', fontproperties='SimHei', labelpad=15)
-ax.set_ylabel('是否有价值 →', fontproperties='SimHei', labelpad=15)
-ax.set_zlabel('付出什么代价 →', fontproperties='SimHei', labelpad=15)
+ax.set_xlabel('是否有意义 →', labelpad=15)
+ax.set_ylabel('是否有价值 →', labelpad=15)
+ax.set_zlabel('付出什么代价 →', labelpad=15)
 
 # 创建标准化范围（0-5）
 norm = plt.Normalize(vmin=0, vmax=5)
