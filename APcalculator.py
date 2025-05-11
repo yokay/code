@@ -17,19 +17,19 @@ st.set_page_config(
 # 自定义CSS样式
 st.markdown("""
 <style>
-    .title {
+   .title {
         text-align: center;
         color: #1E88E5;
         margin-bottom: 20px;
     }
-    .formula-box {
+   .formula-box {
         background-color: #f5f7fa;
         border-radius: 8px;
         padding: 15px;
         margin: 20px 0;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .result-box {
+   .result-box {
         background-color: #e8f5e9;
         border-radius: 8px;
         padding: 20px;
@@ -38,19 +38,19 @@ st.markdown("""
         font-size: 1.2em;
         font-weight: bold;
     }
-    .sidebar-title {
+   .sidebar-title {
         color: #1E88E5;
         font-size: 1.2em;
         margin-top: 20px;
     }
-    .stNumberInput div[class*="stText"] {
-        border-radius: 0.375rem 0 0 0.375rem !important;
+   .stNumberInput div[class*="stText"] {
+        border-radius: 0.375rem 0 0 0.375rem!important;
     }
-    .stSelectbox div[class*="stText"] {
-        border-radius: 0 0.375rem 0.375rem 0 !important;
-        border-left: none !important;
+   .stSelectbox div[class*="stText"] {
+        border-radius: 0 0.375rem 0.375rem 0!important;
+        border-left: none!important;
     }
-    .param-chart {
+   .param-chart {
         margin-bottom: 20px;
     }
 </style>
@@ -110,7 +110,7 @@ with col2:
     flux_units = {"T": 1, "mT": 1e-3, "G": 1e-4}
     b_w = flux_value * flux_units[flux_unit]
     
-    # 频率输入 - 使用并列布局，单位在后面
+    # 输出功率输入 - 使用并列布局，单位在后面
     freq_col1, freq_col2 = st.columns([4, 1])
     with freq_col1:
         freq_value = st.number_input('开关频率值', value=1.0, step=0.1, key="freq_value")
@@ -133,14 +133,14 @@ def create_sensitivity_chart(x, y, current_x, x_label, title, color='blue'):
     ax.axvline(x=current_x, color='red', linestyle='--', linewidth=1.5)
     ax.set_title(title, fontsize=12)
     ax.set_xlabel(x_label, fontsize=10)
-    ax.set_ylabel('AP值 (cm⁴)', fontsize=10)
+    ax.set_ylabel('AP value (cm⁴)', fontsize=10)  # 修改为英文
     ax.grid(True, linestyle='--', alpha=0.7)
     
     # 设置科学计数法格式化
     ax.xaxis.set_major_formatter(EngFormatter())
     
     # 添加当前值标记
-    ax.annotate(f'当前值: {current_x:.4g}', 
+    ax.annotate(f'Current value: {current_x:.4g}',  # 修改为英文
                 xy=(current_x, max(y)*0.8), 
                 xytext=(current_x*1.1, max(y)*0.9),
                 arrowprops=dict(facecolor='red', shrink=0.05, width=1.5, headwidth=8),
@@ -187,8 +187,8 @@ if st.button('计算', key="calculate_btn"):
         with chart_col1:
             fig_p = create_sensitivity_chart(
                 p_values, ap_p, p_out, 
-                f"输出功率 ({power_unit})", 
-                "输出功率对AP值的影响",
+                f"Output Power ({power_unit})",  # 修改为英文
+                "Impact of Output Power on AP value",  # 修改为英文
                 color='#1f77b4'
             )
             st.pyplot(fig_p)
@@ -197,8 +197,8 @@ if st.button('计算', key="calculate_btn"):
         with chart_col2:
             fig_eff = create_sensitivity_chart(
                 eff_values, ap_eff, efficiency, 
-                "变换器效率", 
-                "效率对AP值的影响",
+                "Converter Efficiency",  # 修改为英文
+                "Impact of Efficiency on AP value",  # 修改为英文
                 color='#ff7f0e'
             )
             st.pyplot(fig_eff)
@@ -207,8 +207,8 @@ if st.button('计算', key="calculate_btn"):
         with chart_col1:
             fig_bw = create_sensitivity_chart(
                 bw_values, ap_bw, b_w, 
-                f"磁通密度 ({flux_unit})", 
-                "磁通密度对AP值的影响",
+                f"Magnetic Flux Density ({flux_unit})",  # 修改为英文
+                "Impact of Magnetic Flux Density on AP value",  # 修改为英文
                 color='#2ca02c'
             )
             st.pyplot(fig_bw)
@@ -217,8 +217,8 @@ if st.button('计算', key="calculate_btn"):
         with chart_col2:
             fig_freq = create_sensitivity_chart(
                 freq_values, ap_freq, f, 
-                f"开关频率 ({freq_unit})", 
-                "频率对AP值的影响",
+                f"Switching Frequency ({freq_unit})",  # 修改为英文
+                "Impact of Switching Frequency on AP value",  # 修改为英文
                 color='#d62728'
             )
             st.pyplot(fig_freq)

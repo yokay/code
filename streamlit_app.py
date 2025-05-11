@@ -7,9 +7,6 @@ pages = {
     "Cap and inductor": [
         st.Page("ImpedanceCalculator.py", title="Impedance")
     ],
-    "Schulte Grid": [
-        st.Page("SchulteGrid.py", title="Schulte Grid")
-    ],
     "Unit Calc": [
         st.Page("unitCal.py", title="Unit Calc")
     ],
