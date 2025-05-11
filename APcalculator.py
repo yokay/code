@@ -1,6 +1,11 @@
 import streamlit as st
 import numpy as np
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+from matplotlib.ticker import EngFormatter
+
+# 设置中文字体
+plt.rcParams["font.family"] = ["SimHei", "WenQuanYi Micro Hei", "Heiti TC"]
+plt.rcParams["axes.unicode_minus"] = False  # 解决负号显示问题
 
 # 设置页面配置
 st.set_page_config(
@@ -120,6 +125,29 @@ def calculate_ap(p_out, efficiency, b_w, f):
     """计算推挽变压器的AP值"""
     return (p_out / efficiency) / (b_w * f) * 1e4  # 转换为cm⁴
 
+# 创建图表的函数
+def create_sensitivity_chart(x, y, current_x, x_label, title, color='blue'):
+    """创建参数敏感性分析图表"""
+    fig, ax = plt.subplots(figsize=(6, 3))
+    ax.plot(x, y, color=color, linewidth=2)
+    ax.axvline(x=current_x, color='red', linestyle='--', linewidth=1.5)
+    ax.set_title(title, fontsize=12)
+    ax.set_xlabel(x_label, fontsize=10)
+    ax.set_ylabel('AP值 (cm⁴)', fontsize=10)
+    ax.grid(True, linestyle='--', alpha=0.7)
+    
+    # 设置科学计数法格式化
+    ax.xaxis.set_major_formatter(EngFormatter())
+    
+    # 添加当前值标记
+    ax.annotate(f'当前值: {current_x:.4g}', 
+                xy=(current_x, max(y)*0.8), 
+                xytext=(current_x*1.1, max(y)*0.9),
+                arrowprops=dict(facecolor='red', shrink=0.05, width=1.5, headwidth=8),
+                fontsize=9)
+    
+    return fig
+
 # 计算并显示结果
 if st.button('计算', key="calculate_btn"):
     try:
@@ -157,63 +185,43 @@ if st.button('计算', key="calculate_btn"):
         
         # 输出功率敏感性图表
         with chart_col1:
-            fig_p = go.Figure()
-            fig_p.add_trace(go.Scatter(x=p_values, y=ap_p, mode='lines', line=dict(color='#1f77b4')))
-            fig_p.add_vline(x=p_out, line_width=2, line_dash="dash", line_color="red", 
-                           annotation_text="当前值", annotation_position="top right")
-            fig_p.update_layout(
-                title="输出功率对AP值的影响",
-                xaxis_title=f"输出功率 ({power_unit})",
-                yaxis_title="AP值 (cm⁴)",
-                height=300,
-                margin=dict(l=40, r=20, t=40, b=40),
+            fig_p = create_sensitivity_chart(
+                p_values, ap_p, p_out, 
+                f"输出功率 ({power_unit})", 
+                "输出功率对AP值的影响",
+                color='#1f77b4'
             )
-            st.plotly_chart(fig_p, use_container_width=True, config={'displayModeBar': False})
+            st.pyplot(fig_p)
         
         # 效率敏感性图表
         with chart_col2:
-            fig_eff = go.Figure()
-            fig_eff.add_trace(go.Scatter(x=eff_values, y=ap_eff, mode='lines', line=dict(color='#ff7f0e')))
-            fig_eff.add_vline(x=efficiency, line_width=2, line_dash="dash", line_color="red", 
-                             annotation_text="当前值", annotation_position="top right")
-            fig_eff.update_layout(
-                title="效率对AP值的影响",
-                xaxis_title="变换器效率",
-                yaxis_title="AP值 (cm⁴)",
-                height=300,
-                margin=dict(l=40, r=20, t=40, b=40),
+            fig_eff = create_sensitivity_chart(
+                eff_values, ap_eff, efficiency, 
+                "变换器效率", 
+                "效率对AP值的影响",
+                color='#ff7f0e'
             )
-            st.plotly_chart(fig_eff, use_container_width=True, config={'displayModeBar': False})
+            st.pyplot(fig_eff)
         
         # 磁通密度敏感性图表
         with chart_col1:
-            fig_bw = go.Figure()
-            fig_bw.add_trace(go.Scatter(x=bw_values, y=ap_bw, mode='lines', line=dict(color='#2ca02c')))
-            fig_bw.add_vline(x=b_w, line_width=2, line_dash="dash", line_color="red", 
-                            annotation_text="当前值", annotation_position="top right")
-            fig_bw.update_layout(
-                title="磁通密度对AP值的影响",
-                xaxis_title=f"磁通密度 ({flux_unit})",
-                yaxis_title="AP值 (cm⁴)",
-                height=300,
-                margin=dict(l=40, r=20, t=40, b=40),
+            fig_bw = create_sensitivity_chart(
+                bw_values, ap_bw, b_w, 
+                f"磁通密度 ({flux_unit})", 
+                "磁通密度对AP值的影响",
+                color='#2ca02c'
             )
-            st.plotly_chart(fig_bw, use_container_width=True, config={'displayModeBar': False})
+            st.pyplot(fig_bw)
         
         # 频率敏感性图表
         with chart_col2:
-            fig_freq = go.Figure()
-            fig_freq.add_trace(go.Scatter(x=freq_values, y=ap_freq, mode='lines', line=dict(color='#d62728')))
-            fig_freq.add_vline(x=f, line_width=2, line_dash="dash", line_color="red", 
-                              annotation_text="当前值", annotation_position="top right")
-            fig_freq.update_layout(
-                title="频率对AP值的影响",
-                xaxis_title=f"开关频率 ({freq_unit})",
-                yaxis_title="AP值 (cm⁴)",
-                height=300,
-                margin=dict(l=40, r=20, t=40, b=40),
+            fig_freq = create_sensitivity_chart(
+                freq_values, ap_freq, f, 
+                f"开关频率 ({freq_unit})", 
+                "频率对AP值的影响",
+                color='#d62728'
             )
-            st.plotly_chart(fig_freq, use_container_width=True, config={'displayModeBar': False})
+            st.pyplot(fig_freq)
         
         # 磁芯选型建议
         st.subheader("磁芯选型建议")
@@ -260,7 +268,7 @@ with st.sidebar:
     
     # 添加关于部分
     st.header("关于本工具")
-    st.info("本工具用于快速计算推挽变压器的AP值，帮助工程师选择合适的磁芯。\n\n版本: 1.0.2")
+    st.info("本工具用于快速计算推挽变压器的AP值，帮助工程师选择合适的磁芯。\n\n版本: 1.0.3")
 
 # 添加页脚
 st.markdown("""
