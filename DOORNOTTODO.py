@@ -227,21 +227,6 @@ if show_details:
     # 显示表格
     st.dataframe(df, use_container_width=True)
 
-# 下载数据按钮
-if st.button("📥 下载评估数据"):
-    data_dict = {
-        "决策名称": decision_name,
-        "评估日期": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "总得分": total_score,
-        "分类得分": category_scores,
-        "详细评分": user_scores
-    }
-    df = pd.json_normalize(data_dict)
-    csv = df.to_csv(sep='\t', na_rep='nan')
-    b64 = base64.b64encode(csv.encode()).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="决策评估_{decision_name}.csv">下载 CSV 文件</a>'
-    st.markdown(href, unsafe_allow_html=True)
-
 # 页脚
 st.write("---")
 st.caption("© 2025 DO OR NOT TO DO 决策评估系统 | 设计用于帮助您做出更明智的决策")
