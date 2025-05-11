@@ -1,5 +1,4 @@
 import streamlit as st
-import random
 import time
 import math
 from datetime import datetime, timedelta
@@ -177,6 +176,29 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# 自定义伪随机数生成器
+class SimpleRandom:
+    def __init__(self, seed=None):
+        if seed is None:
+            # 使用当前时间戳作为种子
+            seed = int(time.time() * 1000) % 1000000
+        self.seed = seed
+        self.state = seed
+    
+    def randint(self, a, b):
+        """生成[a, b]范围内的伪随机整数"""
+        # 简单的线性同余生成器
+        self.state = (1664525 * self.state + 1013904223) % (2**32)
+        return a + (self.state % (b - a + 1))
+    
+    def shuffle(self, array):
+        """实现Fisher-Yates洗牌算法"""
+        n = len(array)
+        for i in range(n-1, 0, -1):
+            j = self.randint(0, i)
+            array[i], array[j] = array[j], array[i]
+        return array
+
 # 开始新游戏按钮
 def reset_game():
     st.session_state.current_number = 1
@@ -188,10 +210,11 @@ def reset_game():
     # 增加尝试次数
     st.session_state.attempts += 1
     
-    # 生成随机数填充方格
+    # 生成随机数填充方格（不使用random库）
+    rng = SimpleRandom()
     numbers = list(range(1, st.session_state.grid_size ** 2 + 1))
-    random.shuffle(numbers)
-    st.session_state.grid = [numbers[i:i+st.session_state.grid_size] for i in range(0, len(numbers), st.session_state.grid_size)]
+    shuffled_numbers = rng.shuffle(numbers)
+    st.session_state.grid = [shuffled_numbers[i:i+st.session_state.grid_size] for i in range(0, len(shuffled_numbers), st.session_state.grid_size)]
     
     # 清除计时器占位符
     if st.session_state.timer_placeholder:
