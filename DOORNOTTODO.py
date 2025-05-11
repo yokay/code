@@ -11,29 +11,28 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 定义检查项字典及权重，添加正负方向属性（True表示正向，False表示负向）
 check_items = {
     '是否有意义': {
-        '是否心血来潮，一时兴起': {'weight': 0.05, 'positive': False},
-        '是否经过2~3天冷静期思考': {'weight': 0.07, 'positive': True},
-        '是否有在网络上查询过': {'weight': 0.04, 'positive': True},
-        '是否会后悔': {'weight': 0.10, 'positive': False},
-        '是否在年度计划内': {'weight': 0.06, 'positive': True},
-        '是否可以不做': {'weight': 0.03, 'positive': False}
+        '是否心血来潮，一时兴起': {'weight': 0.06, 'positive': False},  # 从0.05提高到0.06
+        '是否经过2~3天冷静期思考': {'weight': 0.08, 'positive': True},  # 从0.07提高到0.08
+        '是否有在网络上查询过': {'weight': 0.05, 'positive': True},  # 从0.04提高到0.05
+        '是否会后悔': {'weight': 0.10, 'positive': False},  # 恢复为原设定0.10
+        '是否在年度计划内': {'weight': 0.07, 'positive': True},  # 从0.06提高到0.07
+        '是否可以不做': {'weight': 0.04, 'positive': False}  # 从0.03提高到0.04
     },
     '是否有价值': {
-        '是否对健康有帮助': {'weight': 0.12, 'positive': True},
-        '是否产生财务增值': {'weight': 0.09, 'positive': True},
-        '是否获取新的知识': {'weight': 0.09, 'positive': True},
-        '是否对工作有用': {'weight': 0.06, 'positive': True},
-        '是否开心': {'weight': 0.06, 'positive': True},
-        '是否对家庭有帮助': {'weight': 0.03, 'positive': True}
+        '是否对健康有帮助': {'weight': 0.10, 'positive': True},  # 从0.09提高到0.10
+        '是否产生财务增值': {'weight': 0.10, 'positive': True},  # 从0.09提高到0.10
+        '是否获取新的知识': {'weight': 0.10, 'positive': True},  # 从0.09提高到0.10
+        '是否对工作有用': {'weight': 0.07, 'positive': True},  # 从0.06提高到0.07
+        '是否开心': {'weight': 0.07, 'positive': True},  # 从0.06提高到0.07
+        '是否对家庭有帮助': {'weight': 0.05, 'positive': True}  # 从0.04提高到0.05
     },
     '付出什么代价': {
-        '是否需要花一个月时间': {'weight': 0.12, 'positive': False},
-        '是否需要花1000元以上': {'weight': 0.08, 'positive': False}
+        '是否需要花一个月时间': {'weight': 0.09, 'positive': False},  # 从0.08提高到0.09
+        '是否需要花1000元以上': {'weight': 0.07, 'positive': False}  # 从0.06提高到0.07
     }
-}
+}    
 
 # 应用标题和介绍
 # 应用标题和介绍
