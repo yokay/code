@@ -2,13 +2,12 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import EngFormatter
-import plotly.graph_objects as go
 import pandas as pd
 
 # 设置中文字体支持
 plt.rcParams["font.family"] = ["SimHei", "WenQuanYi Micro Hei", "Heiti TC", "sans-serif"]
 plt.rcParams["axes.unicode_minus"] = False  # 正确显示负号
-
+DISPLAY_PRECISION = 3  # 全局显示精度
 # 应用布局设置
 st.set_page_config(
     page_title="阻抗计算器",
@@ -18,7 +17,7 @@ st.set_page_config(
 )
 
 # 格式化数值显示的辅助函数
-def format_value(value, unit="", engineering=True, precision=3, special_freq=False):
+def format_value(value, unit="", engineering=True, precision=DISPLAY_PRECISION, special_freq=False):
     """
     格式化数值显示，根据数值大小自动选择合适的单位前缀
     
@@ -105,14 +104,14 @@ def convert_to_base_unit(value, unit_multiplier):
 def impedance_capacitor(C, ESR, f):
     """计算电容的阻抗，包括ESR"""
     if C == 0:
-        return float('inf') if f != 0 else 0
+        return float('inf')  # 电容为0时，相当于开路
     capacitive_reactance = 1 / (2 * np.pi * f * C)
     return complex(ESR, -capacitive_reactance)
 
 def impedance_inductor(L, DCR, f):
     """计算电感的阻抗，包括DCR"""
     if L == 0:
-        return 0
+        return complex(DCR, 0)  # 电感为0时，相当于纯电阻DCR
     inductive_reactance = 2 * np.pi * f * L
     return complex(DCR, inductive_reactance)
 
@@ -170,6 +169,44 @@ def impedance_to_admittance(Z):
             return 0
         return 1 / Z
 
+# 复数阻抗格式化函数
+def format_complex_impedance(Z, precision=DISPLAY_PRECISION):
+    """格式化复数阻抗为 R+jX 形式"""
+    if Z == float('inf'):
+        return "∞"
+    
+    real = np.real(Z)
+    imag = np.imag(Z)
+    
+    # 处理实部
+    real_str = format_value(real, 'Ω', precision=precision)
+    
+    # 处理虚部
+    if imag >= 0:
+        imag_str = f"+j{format_value(imag, 'Ω', precision=precision)}"
+    else:
+        imag_str = f"-j{format_value(abs(imag), 'Ω', precision=precision)}"
+    
+    return f"{real_str}{imag_str}"
+
+# 计算LC电路在负载下的传递函数
+def calculate_transfer_function(Z_source, Z_load):
+    """计算电压传递函数 H = V_out/V_in = Z_load/(Z_source + Z_load)"""
+    return Z_load / (Z_source + Z_load)
+
+# 计算Bode图数据
+def calculate_bode_data(frequencies, Z_source, Z_load):
+    """计算Bode图的幅度和相位数据"""
+    H = calculate_transfer_function(Z_source, Z_load)
+    
+    # 计算幅度响应 (dB)
+    magnitude_db = 20 * np.log10(np.abs(H))
+    
+    # 计算相位响应 (度)
+    phase_deg = np.angle(H, deg=True)
+    
+    return magnitude_db, phase_deg
+
 # 页面标题和介绍
 st.title("电容和电感阻抗计算器")
 st.markdown("""
@@ -182,7 +219,7 @@ with st.sidebar:
     st.header("参数设置")
     
     # 使用选项卡组织输入参数
-    tab1, tab2, tab3 = st.tabs(["元件参数", "频率范围", "显示设置"])
+    tab1, tab2, tab3, tab4 = st.tabs(["元件参数", "频率范围", "显示设置", "Bode图设置"])
     
     with tab1:
         # 电容值输入，支持单位选择
@@ -317,7 +354,7 @@ with st.sidebar:
         # 显示设置
         connection_type = st.selectbox(
             '连接方式', 
-            ['串联', '并联'],
+            ['Series', 'Parallel'],
             help="选择电容和电感的连接方式"
         )
         
@@ -347,6 +384,7 @@ with st.sidebar:
         show_admittance_plot = st.checkbox("显示导纳图", value=False)
         show_smith_chart = st.checkbox("显示史密斯圆图", value=True)
         show_phase_plot = st.checkbox("显示相位图", value=True)
+        show_bode_plot = st.checkbox("显示Bode图", value=True)
         
         # 图表样式设置
         plot_theme = st.selectbox(
@@ -360,6 +398,55 @@ with st.sidebar:
             plt.style.use('dark_background')
         else:
             plt.style.use('default')
+    
+    with tab4:
+        # Bode图设置
+        st.subheader("Bode图参数")
+        
+        # 负载阻抗设置
+        load_impedance = st.number_input(
+            '负载阻抗 (Ω)',
+            min_value=0.0,
+            max_value=1e9,
+            value=50.0,
+            format="%f",
+            help="输入负载阻抗值，单位为欧姆"
+        )
+        
+        # Bode图频率范围扩展
+        bode_freq_scale = st.radio(
+            "Bode图频率范围",
+            ["与主频率范围相同", "扩展10倍", "扩展100倍"],
+            index=0,
+            help="设置Bode图的频率范围，可选择比主频率范围更宽"
+        )
+        
+        # 计算Bode图频率范围
+        if bode_freq_scale == "扩展10倍":
+            bode_f_min = f_min / 10
+            bode_f_max = f_max * 10
+        elif bode_freq_scale == "扩展100倍":
+            bode_f_min = f_min / 100
+            bode_f_max = f_max * 100
+        else:
+            bode_f_min = f_min
+            bode_f_max = f_max
+        
+        # Bode图频率点数
+        bode_num_points = st.slider(
+            "Bode图计算点数",
+            min_value=100,
+            max_value=5000,
+            value=1000,
+            step=100,
+            help="设置Bode图计算的频率点数，点数越多越精确"
+        )
+        
+        # 创建Bode图频率数组
+        if bode_f_min == 0:
+            bode_frequencies = np.linspace(0, bode_f_max, bode_num_points)
+        else:
+            bode_frequencies = np.logspace(np.log10(bode_f_min), np.log10(bode_f_max), bode_num_points)
 
 # 处理频率范围包含0的情况
 if f_min == 0:
@@ -369,23 +456,135 @@ else:
     # 正常对数分布
     frequencies = np.logspace(np.log10(f_min), np.log10(f_max), 1000)
 
-# 计算阻抗，考虑ESR和DCR
-Z_C = np.array([impedance_capacitor(C, ESR, f) for f in frequencies])
-Z_L = np.array([impedance_inductor(L, DCR, f) for f in frequencies])
-
-# 计算组合阻抗
-if connection_type == '串联':
-    Z_combined = series_impedance(Z_C, Z_L)
+# 根据电容和电感的值决定计算方式
+if C == 0 and L == 0:
+    # 电容和电感都为0，表示都没有
+    Z_combined = np.full_like(frequencies, float('inf'), dtype=complex)
+    Z_C = np.full_like(frequencies, float('inf'), dtype=complex)
+    Z_L = np.full_like(frequencies, 0, dtype=complex)
+    st.warning("警告：电容和电感均为0，表示电路中没有电容和电感元件")
+    
+    # 如果没有谐振频率，选择一个典型频率作为代表
+    if typical_frequencies:
+        resonance_freq = typical_frequencies[len(typical_frequencies)//2]  # 选择中间的典型频率
+        st.info(f"已选择典型频率 {format_value(resonance_freq, 'Hz', special_freq=True)} 作为参考频率")
+    else:
+        resonance_freq = frequencies[len(frequencies)//2]  # 选择频率范围中间的点
+        st.info(f"已选择频率范围中点 {format_value(resonance_freq, 'Hz', special_freq=True)} 作为参考频率")
+    
+    resonance_impedance = Z_combined[np.abs(frequencies - resonance_freq).argmin()]
+elif C == 0:
+    # 电容为0，表示只有电感
+    Z_L = np.array([impedance_inductor(L, DCR, f) for f in frequencies])
+    Z_combined = Z_L
+    Z_C = np.full_like(frequencies, float('inf'), dtype=complex)
+    st.info("提示：电容为0，表示电路中只有电感元件")
+    
+    # 选择一个典型频率作为谐振频率
+    if typical_frequencies:
+        resonance_freq = typical_frequencies[len(typical_frequencies)//2]  # 选择中间的典型频率
+        st.info(f"已选择典型频率 {format_value(resonance_freq, 'Hz', special_freq=True)} 作为参考频率")
+    else:
+        resonance_freq = frequencies[len(frequencies)//2]  # 选择频率范围中间的点
+        st.info(f"已选择频率范围中点 {format_value(resonance_freq, 'Hz', special_freq=True)} 作为参考频率")
+    
+    # 确保计算谐振阻抗时使用正确的索引
+    resonance_idx = np.abs(frequencies - resonance_freq).argmin()
+    resonance_impedance = Z_combined[resonance_idx]
+elif L == 0:
+    # 电感为0，表示只有电容
+    Z_C = np.array([impedance_capacitor(C, ESR, f) for f in frequencies])
+    Z_combined = Z_C
+    Z_L = np.full_like(frequencies, 0, dtype=complex)
+    st.info("提示：电感为0，表示电路中只有电容元件")
+    
+    # 选择一个典型频率作为谐振频率
+    if typical_frequencies:
+        resonance_freq = typical_frequencies[len(typical_frequencies)//2]  # 选择中间的典型频率
+        st.info(f"已选择典型频率 {format_value(resonance_freq, 'Hz', special_freq=True)} 作为参考频率")
+    else:
+        resonance_freq = frequencies[len(frequencies)//2]  # 选择频率范围中间的点
+        st.info(f"已选择频率范围中点 {format_value(resonance_freq, 'Hz', special_freq=True)} 作为参考频率")
+    
+    # 确保计算谐振阻抗时使用正确的索引
+    resonance_idx = np.abs(frequencies - resonance_freq).argmin()
+    resonance_impedance = Z_combined[resonance_idx]
 else:
-    Z_combined = parallel_impedance(Z_C, Z_L)
+    # 电容和电感都不为0，正常计算
+    Z_C = np.array([impedance_capacitor(C, ESR, f) for f in frequencies])
+    Z_L = np.array([impedance_inductor(L, DCR, f) for f in frequencies])
+    
+    # 计算组合阻抗
+    if connection_type == 'Series':
+        Z_combined = series_impedance(Z_C, Z_L)
+    else:
+        Z_combined = parallel_impedance(Z_C, Z_L)
+    
+    # 找出谐振频率（如果存在）
+    if connection_type == 'Series':
+        # 串联谐振：阻抗虚部为0，阻抗最小
+        if 0 in frequencies:
+            # 如果频率范围包含0，检查0频率处的阻抗
+            zero_freq_idx = np.where(frequencies == 0)[0][0]
+            if abs(np.imag(Z_combined[zero_freq_idx])) < 1e-10:
+                resonance_idx = zero_freq_idx
+            else:
+                # 找到最接近0虚部的点
+                resonance_idx = np.argmin(np.abs(np.imag(Z_combined)))
+        else:
+            resonance_idx = np.argmin(np.abs(np.imag(Z_combined)))
+    else:
+        # 并联谐振：导纳虚部为0，阻抗最大
+        if 0 in frequencies:
+            zero_freq_idx = np.where(frequencies == 0)[0][0]
+            if abs(np.imag(Y_combined[zero_freq_idx])) < 1e-10:
+                resonance_idx = zero_freq_idx
+            else:
+                resonance_idx = np.argmax(np.abs(np.real(Z_combined)))
+        else:
+            resonance_idx = np.argmax(np.abs(np.real(Z_combined)))
+    
+    resonance_freq = frequencies[resonance_idx]
+    resonance_impedance = Z_combined[resonance_idx]
 
 # 计算典型频率下的阻抗
-Z_C_typical = np.array([impedance_capacitor(C, ESR, f) for f in typical_frequencies])
-Z_L_typical = np.array([impedance_inductor(L, DCR, f) for f in typical_frequencies])
-if connection_type == '串联':
-    Z_combined_typical = series_impedance(Z_C_typical, Z_L_typical)
+if C == 0 and L == 0:
+    Z_combined_typical = np.full_like(typical_frequencies, float('inf'), dtype=complex)
+    Z_C_typical = np.full_like(typical_frequencies, float('inf'), dtype=complex)
+    Z_L_typical = np.full_like(typical_frequencies, 0, dtype=complex)
+elif C == 0:
+    # 确保典型频率下的阻抗计算使用精确频率值
+    Z_L_typical = np.array([impedance_inductor(L, DCR, f) for f in typical_frequencies])
+    Z_combined_typical = Z_L_typical
+    Z_C_typical = np.full_like(typical_frequencies, float('inf'), dtype=complex)
+    
+    # 确保谐振阻抗使用精确的典型频率值
+    if resonance_freq in typical_frequencies:
+        idx = typical_frequencies.index(resonance_freq)
+        resonance_impedance = Z_combined_typical[idx]
+    else:
+        # 如果谐振频率不是典型频率之一，使用最近的频率点
+        resonance_idx = np.abs(frequencies - resonance_freq).argmin()
+        resonance_impedance = Z_combined[resonance_idx]
+elif L == 0:
+    Z_C_typical = np.array([impedance_capacitor(C, ESR, f) for f in typical_frequencies])
+    Z_combined_typical = Z_C_typical
+    Z_L_typical = np.full_like(typical_frequencies, 0, dtype=complex)
+    
+    # 确保谐振阻抗使用精确的典型频率值
+    if resonance_freq in typical_frequencies:
+        idx = typical_frequencies.index(resonance_freq)
+        resonance_impedance = Z_combined_typical[idx]
+    else:
+        resonance_idx = np.abs(frequencies - resonance_freq).argmin()
+        resonance_impedance = Z_combined[resonance_idx]
 else:
-    Z_combined_typical = parallel_impedance(Z_C_typical, Z_L_typical)
+    Z_C_typical = np.array([impedance_capacitor(C, ESR, f) for f in typical_frequencies])
+    Z_L_typical = np.array([impedance_inductor(L, DCR, f) for f in typical_frequencies])
+    if connection_type == 'Series':
+        Z_combined_typical = series_impedance(Z_C_typical, Z_L_typical)
+    else:
+        Z_combined_typical = parallel_impedance(Z_C_typical, Z_L_typical)
 
 # 计算导纳
 Y_combined = np.array([impedance_to_admittance(z) for z in Z_combined])
@@ -399,63 +598,82 @@ gamma_combined_typical = np.array([impedance_to_gamma(z) for z in Z_combined_typ
 phase_combined = np.array([np.angle(z, deg=True) if z != float('inf') else 90 for z in Z_combined])
 phase_combined_typical = np.array([np.angle(z, deg=True) if z != float('inf') else 90 for z in Z_combined_typical])
 
-# 计算阻抗的实部和虚部
-real_Z_combined = np.real(Z_combined)
-imag_Z_combined = np.imag(Z_combined)
-
-# 计算导纳的实部和虚部
-real_Y_combined = np.real(Y_combined)
-imag_Y_combined = np.imag(Y_combined)
-
-# 找出谐振频率（如果存在）
-if connection_type == '串联':
-    # 串联谐振：阻抗虚部为0，阻抗最小
-    if 0 in frequencies:
-        # 如果频率范围包含0，检查0频率处的阻抗
-        zero_freq_idx = np.where(frequencies == 0)[0][0]
-        if abs(imag_Z_combined[zero_freq_idx]) < 1e-10:
-            resonance_idx = zero_freq_idx
-        else:
-            # 找到最接近0虚部的点
-            resonance_idx = np.argmin(np.abs(imag_Z_combined))
-    else:
-        resonance_idx = np.argmin(np.abs(imag_Z_combined))
+# 计算电容品质因数
+capacitive_reactance_at_resonance = 1 / (2 * np.pi * resonance_freq * C) if C != 0 else float('inf')
+if ESR == 0:
+    Q_capacitor = float('inf') if capacitive_reactance_at_resonance != 0 else 0
 else:
-    # 并联谐振：导纳虚部为0，阻抗最大
-    if 0 in frequencies:
-        zero_freq_idx = np.where(frequencies == 0)[0][0]
-        if abs(imag_Y_combined[zero_freq_idx]) < 1e-10:
-            resonance_idx = zero_freq_idx
-        else:
-            resonance_idx = np.argmax(np.abs(real_Z_combined))
-    else:
-        resonance_idx = np.argmax(np.abs(real_Z_combined))
-    
-resonance_freq = frequencies[resonance_idx]
-resonance_impedance = Z_combined[resonance_idx]
+    Q_capacitor = np.abs(capacitive_reactance_at_resonance) / ESR
 
-# 计算Q因子（品质因数）
-if connection_type == '串联':
+# 计算电感品质因数
+inductive_reactance_at_resonance = 2 * np.pi * resonance_freq * L if L != 0 else 0
+if DCR == 0:
+    Q_inductor = float('inf') if inductive_reactance_at_resonance != 0 else 0
+else:
+    Q_inductor = np.abs(inductive_reactance_at_resonance) / DCR
+
+# 计算总品质因数（系统品质因数）
+if connection_type == 'Series':
     # 串联谐振Q因子：X_L/R或X_C/R（在谐振点两者相等）
-    R = np.real(resonance_impedance)
-    X_L = np.imag(impedance_inductor(L, DCR, resonance_freq))
-    
-    if R == 0:
-        Q_factor = float('inf') if X_L != 0 else 0
+    R_total = ESR + DCR
+    if R_total == 0:
+        Q_total = float('inf') if inductive_reactance_at_resonance != 0 else 0
     else:
-        Q_factor = np.abs(X_L) / R
+        Q_total = np.abs(inductive_reactance_at_resonance) / R_total
 else:
     # 并联谐振Q因子：R/X_L或R/X_C（在谐振点两者相等）
-    R = np.real(resonance_impedance)
-    X_L = np.imag(impedance_inductor(L, DCR, resonance_freq))
-    
-    if R == 0:
-        Q_factor = 0
+    # 对于并联谐振，总阻抗接近无穷大，所以Q因子是R/X
+    R_parallel = np.real(resonance_impedance)
+    if R_parallel == 0:
+        Q_total = 0
     else:
-        if X_L == 0:
-            Q_factor = float('inf')
+        if inductive_reactance_at_resonance == 0:
+            Q_total = float('inf')
         else:
-            Q_factor = R / np.abs(X_L)
+            Q_total = R_parallel / np.abs(inductive_reactance_at_resonance)
+
+# 计算Bode图数据
+if C == 0 and L == 0:
+    Z_source_bode = np.full_like(bode_frequencies, float('inf'), dtype=complex)
+elif C == 0:
+    Z_source_bode = np.array([impedance_inductor(L, DCR, f) for f in bode_frequencies])
+elif L == 0:
+    Z_source_bode = np.array([impedance_capacitor(C, ESR, f) for f in bode_frequencies])
+else:
+    Z_C_bode = np.array([impedance_capacitor(C, ESR, f) for f in bode_frequencies])
+    Z_L_bode = np.array([impedance_inductor(L, DCR, f) for f in bode_frequencies])
+    
+    if connection_type == 'Series':
+        Z_source_bode = series_impedance(Z_C_bode, Z_L_bode)
+    else:
+        Z_source_bode = parallel_impedance(Z_C_bode, Z_L_bode)
+
+Z_load_bode = load_impedance  # 负载阻抗是常数
+magnitude_db, phase_deg = calculate_bode_data(bode_frequencies, Z_source_bode, Z_load_bode)
+
+# 计算典型频率点的Bode图数据
+magnitude_db_typical = []
+phase_deg_typical = []
+
+for f in typical_frequencies:
+    if C == 0 and L == 0:
+        Z_source_t = float('inf')
+    elif C == 0:
+        Z_source_t = impedance_inductor(L, DCR, f)
+    elif L == 0:
+        Z_source_t = impedance_capacitor(C, ESR, f)
+    else:
+        Z_C_t = impedance_capacitor(C, ESR, f)
+        Z_L_t = impedance_inductor(L, DCR, f)
+        
+        if connection_type == 'Series':
+            Z_source_t = series_impedance(Z_C_t, Z_L_t)
+        else:
+            Z_source_t = parallel_impedance(Z_C_t, Z_L_t)
+    
+    H_t = calculate_transfer_function(Z_source_t, Z_load_bode)
+    magnitude_db_typical.append(20 * np.log10(np.abs(H_t)))
+    phase_deg_typical.append(np.angle(H_t, deg=True))
 
 # 显示基本信息和计算结果
 st.subheader("计算结果")
@@ -469,12 +687,14 @@ with col1:
     st.markdown(f"**电容ESR**: {format_value(ESR, 'Ω')}")
     st.markdown(f"**电感DCR**: {format_value(DCR, 'Ω')}")
     st.markdown(f"**连接方式**: {connection_type}")
+    st.markdown(f"**负载阻抗**: {format_value(load_impedance, 'Ω')}")
     
 with col2:
-    st.markdown(f"**谐振频率**: {format_value(resonance_freq, 'Hz', special_freq=True)}")
-    st.markdown(f"**谐振阻抗**: {format_value(np.abs(resonance_impedance), 'Ω')}")
-    st.markdown(f"**谐振电阻**: {format_value(np.real(resonance_impedance), 'Ω')}")
-    st.markdown(f"**品质因数Q**: {Q_factor:.3f}")
+    st.markdown(f"**参考频率**: {format_value(resonance_freq, 'Hz', special_freq=True)}")
+    st.markdown(f"**电容品质因数Qc**: {Q_capacitor:.3f}")
+    st.markdown(f"**电感品质因数Ql**: {Q_inductor:.3f}")
+    st.markdown(f"**总品质因数Q**: {Q_total:.3f}")
+    st.markdown(f"**复数阻抗**: {format_complex_impedance(resonance_impedance, 3)}")
 
 # 显示典型频率下的阻抗值表格
 if typical_frequencies:
@@ -482,25 +702,38 @@ if typical_frequencies:
     
     # 创建数据框
     data = []
-    for f, z, y, gamma, phase in zip(
+    for f, z, y, gamma, phase, mag_db, phase_d in zip(
         typical_frequencies, 
         Z_combined_typical, 
         Y_combined_typical,
         gamma_combined_typical,
-        phase_combined_typical
+        phase_combined_typical,
+        magnitude_db_typical,
+        phase_deg_typical
     ):
+        # 计算当前频率下的电容和电感品质因数
+        X_C = 1 / (2 * np.pi * f * C) if C != 0 else float('inf')
+        X_L = 2 * np.pi * f * L if L != 0 else 0
+        Q_c = np.abs(X_C) / ESR if ESR != 0 else float('inf')
+        Q_l = np.abs(X_L) / DCR if DCR != 0 else float('inf')
+        
         data.append({
             "频率": format_value(f, 'Hz', special_freq=True),
             "阻抗实部 (Ω)": format_value(np.real(z), 'Ω'),
             "阻抗虚部 (Ω)": format_value(np.imag(z), 'Ω'),
             "阻抗模 (Ω)": format_value(np.abs(z), 'Ω'),
+            "复数阻抗": format_complex_impedance(z,3),
             "阻抗角 (°)": f"{phase:.2f}",
             "导纳实部 (S)": format_value(np.real(y), 'S'),
             "导纳虚部 (S)": format_value(np.imag(y), 'S'),
             "反射系数实部": f"{np.real(gamma):.6f}",
             "反射系数虚部": f"{np.imag(gamma):.6f}",
             "反射系数模": f"{np.abs(gamma):.6f}",
-            "反射系数角 (°)": f"{np.angle(gamma, deg=True):.2f}"
+            "反射系数角 (°)": f"{np.angle(gamma, deg=True):.2f}",
+            "增益 (dB)": f"{mag_db:.2f}",
+            "相位 (°)": f"{phase_d:.2f}",
+            "电容Qc": f"{Q_c:.3f}",
+            "电感Ql": f"{Q_l:.3f}"
         })
     
     # 显示表格
@@ -511,148 +744,123 @@ if typical_frequencies:
 st.subheader("图表分析")
 
 # 使用选项卡组织不同类型的图表
-tab1, tab2, tab3, tab4 = st.tabs(["阻抗图", "导纳图", "相位图", "史密斯圆图"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["阻抗图", "导纳图", "相位图", "史密斯圆图", "Bode图"])
 
 with tab1:
     if show_impedance_plot:
         # 创建阻抗图
-        fig1 = go.Figure()
+        fig1, ax1 = plt.subplots(figsize=(10, 6))
         
         # 处理阻抗为无穷大的情况
         impedance_magnitudes = np.array([np.abs(z) if z != float('inf') else 1e10 for z in Z_combined])
         
-        # 添加阻抗模和相位轨迹
-        fig1.add_trace(go.Scatter(
-            x=frequencies/unit_factor, 
-            y=impedance_magnitudes,
-            mode='lines',
-            name='阻抗模 (Ω)',
-            line=dict(width=2)
-        ))
+        # 添加阻抗模轨迹
+        ax1.semilogx(frequencies/unit_factor, impedance_magnitudes, 'b-', linewidth=2, label='Impedance Magnitude (Ω)')
         
         # 添加典型频率点
-        fig1.add_trace(go.Scatter(
-            x=np.array(typical_frequencies)/unit_factor, 
-            y=[np.abs(z) if z != float('inf') else 1e10 for z in Z_combined_typical],
-            mode='markers',
-            name='典型频率点',
-            marker=dict(size=8, color='red', symbol='circle')
-        ))
-        
-        # 添加谐振点
-        fig1.add_trace(go.Scatter(
-            x=[resonance_freq/unit_factor], 
-            y=[np.abs(resonance_impedance) if resonance_impedance != float('inf') else 1e10],
-            mode='markers+text',
-            name='谐振点',
-            marker=dict(size=10, color='green', symbol='diamond'),
-            text=[f"谐振: {format_value(np.abs(resonance_impedance), 'Ω')}"],
-            textposition='top center'
-        ))
-        
-        # 设置图表布局
-        fig1.update_layout(
-            title=f'阻抗模 vs 频率 ({connection_type})',
-            xaxis_title=f'频率 ({freq_scale})',
-            yaxis_title='阻抗 (Ω)',
-            xaxis=dict(type='log' if f_min > 0 else 'linear'),
-            yaxis=dict(type='log'),
-            hovermode='x unified',
-            template='plotly_dark' if plot_theme == "暗色" else 'plotly_white',
-            height=500
+        ax1.plot(
+            np.array(typical_frequencies)/unit_factor, 
+            [np.abs(z) if z != float('inf') else 1e10 for z in Z_combined_typical],
+            'ro', markersize=6, label='Typical Frequencies'
         )
         
+        # 添加谐振点
+        ax1.plot(
+            resonance_freq/unit_factor, 
+            np.abs(resonance_impedance) if resonance_impedance != float('inf') else 1e10,
+            'gD', markersize=8, label='Resonant Point'
+        )
+        
+        # 添加谐振点标注
+        ax1.annotate(
+            f"Resonance: {format_value(np.abs(resonance_impedance), 'Ω')}",
+            xy=(resonance_freq/unit_factor, np.abs(resonance_impedance)),
+            xytext=(10, 10),
+            textcoords='offset points',
+            arrowprops=dict(arrowstyle='->', color='green')
+        )
+        
+        # 设置坐标轴和标题
+        ax1.set_title(f'Impedance Magnitude vs Frequency ({connection_type})')
+        ax1.set_xlabel(f'Frequency ({freq_scale})')
+        ax1.set_ylabel('Impedance (Ω)')
+        ax1.set_yscale('log')
+        ax1.grid(True, which='both', linestyle='--', alpha=0.5)
+        ax1.legend()
+        
         # 显示阻抗图
-        st.plotly_chart(fig1, use_container_width=True)
+        st.pyplot(fig1)
 
 with tab2:
     if show_admittance_plot:
         # 创建导纳图
-        fig2 = go.Figure()
+        fig2, ax2 = plt.subplots(figsize=(10, 6))
         
         # 处理导纳为无穷大的情况
         admittance_magnitudes = np.array([np.abs(y) if y != float('inf') else 1e10 for y in Y_combined])
         
         # 添加导纳模轨迹
-        fig2.add_trace(go.Scatter(
-            x=frequencies/unit_factor, 
-            y=admittance_magnitudes,
-            mode='lines',
-            name='导纳模 (S)',
-            line=dict(width=2)
-        ))
+        ax2.semilogx(frequencies/unit_factor, admittance_magnitudes, 'b-', linewidth=2, label='Admittance Magnitude (S)')
         
         # 添加典型频率点
-        fig2.add_trace(go.Scatter(
-            x=np.array(typical_frequencies)/unit_factor, 
-            y=[np.abs(y) if y != float('inf') else 1e10 for y in Y_combined_typical],
-            mode='markers',
-            name='典型频率点',
-            marker=dict(size=8, color='red', symbol='circle')
-        ))
-        
-        # 设置图表布局
-        fig2.update_layout(
-            title=f'导纳模 vs 频率 ({connection_type})',
-            xaxis_title=f'频率 ({freq_scale})',
-            yaxis_title='导纳 (S)',
-            xaxis=dict(type='log' if f_min > 0 else 'linear'),
-            yaxis=dict(type='log'),
-            hovermode='x unified',
-            template='plotly_dark' if plot_theme == "暗色" else 'plotly_white',
-            height=500
+        ax2.plot(
+            np.array(typical_frequencies)/unit_factor, 
+            [np.abs(y) if y != float('inf') else 1e10 for y in Y_combined_typical],
+            'ro', markersize=6, label='Typical Frequencies'
         )
         
+        # 设置坐标轴和标题
+        ax2.set_title(f'Admittance Magnitude vs Frequency ({connection_type})')
+        ax2.set_xlabel(f'Frequency ({freq_scale})')
+        ax2.set_ylabel('Admittance (S)')
+        ax2.set_yscale('log')
+        ax2.grid(True, which='both', linestyle='--', alpha=0.5)
+        ax2.legend()
+        
         # 显示导纳图
-        st.plotly_chart(fig2, use_container_width=True)
+        st.pyplot(fig2)
 
 with tab3:
     if show_phase_plot:
         # 创建相位图
-        fig3 = go.Figure()
+        fig3, ax3 = plt.subplots(figsize=(10, 6))
         
         # 添加相位轨迹
-        fig3.add_trace(go.Scatter(
-            x=frequencies/unit_factor, 
-            y=phase_combined,
-            mode='lines',
-            name='相位角 (°)',
-            line=dict(width=2)
-        ))
+        ax3.semilogx(frequencies/unit_factor, phase_combined, 'b-', linewidth=2, label='Phase Angle (°)')
         
         # 添加典型频率点
-        fig3.add_trace(go.Scatter(
-            x=np.array(typical_frequencies)/unit_factor, 
-            y=phase_combined_typical,
-            mode='markers',
-            name='典型频率点',
-            marker=dict(size=8, color='red', symbol='circle')
-        ))
-        
-        # 添加谐振点
-        fig3.add_trace(go.Scatter(
-            x=[resonance_freq/unit_factor], 
-            y=[phase_combined[resonance_idx]],
-            mode='markers+text',
-            name='谐振点',
-            marker=dict(size=10, color='green', symbol='diamond'),
-            text=[f"相位: {phase_combined[resonance_idx]:.2f}°"],
-            textposition='top center'
-        ))
-        
-        # 设置图表布局
-        fig3.update_layout(
-            title=f'相位角 vs 频率 ({connection_type})',
-            xaxis_title=f'频率 ({freq_scale})',
-            yaxis_title='相位角 (°)',
-            xaxis=dict(type='log' if f_min > 0 else 'linear'),
-            hovermode='x unified',
-            template='plotly_dark' if plot_theme == "暗色" else 'plotly_white',
-            height=500
+        ax3.plot(
+            np.array(typical_frequencies)/unit_factor, 
+            phase_combined_typical,
+            'ro', markersize=6, label='Typical Frequencies'
         )
         
+        # 添加谐振点
+        ax3.plot(
+            resonance_freq/unit_factor, 
+            phase_combined[np.abs(frequencies - resonance_freq).argmin()],
+            'gD', markersize=8, label='Resonant Point'
+        )
+        
+        # 添加谐振点标注
+        # 添加谐振点标注
+        ax3.annotate(
+            f"Phase: {phase_combined[np.abs(frequencies - resonance_freq).argmin()]:.2f}°",
+            xy=(resonance_freq/unit_factor, phase_combined[np.abs(frequencies - resonance_freq).argmin()]),
+            xytext=(10, 10),
+            textcoords='offset points',
+            arrowprops=dict(arrowstyle='->', color='green')
+        )
+        
+        # 设置坐标轴和标题
+        ax3.set_title(f'Phase Angle vs Frequency ({connection_type})')
+        ax3.set_xlabel(f'Frequency ({freq_scale})')
+        ax3.set_ylabel('Phase Angle (°)')
+        ax3.grid(True, which='both', linestyle='--', alpha=0.5)
+        ax3.legend()
+        
         # 显示相位图
-        st.plotly_chart(fig3, use_container_width=True)
+        st.pyplot(fig3)
 
 with tab4:
     if show_smith_chart:
@@ -670,96 +878,164 @@ with tab4:
         for r in r_values:
             center = r / (1 + r)
             radius = 1 / (1 + r)
-            circle = plt.Circle((center, 0), radius, color='gray', fill=False, lw=0.5)
+            circle = plt.Circle((center, 0), radius, fill=False, color='gray', linestyle='--', alpha=0.5)
             ax4.add_artist(circle)
         
-        # 恒定电抗弧
-        x_values = np.array([0.2, 0.5, 1, 2, 5, 10])
+        # 恒定电抗圆
+        x_values = np.array([0.2, 0.5, 1, 2, 5, 10, -0.2, -0.5, -1, -2, -5, -10])
         for x in x_values:
-            center = 1
-            radius = 1 / x
-            theta = np.linspace(0, np.pi/2, 100)
-            ax4.plot(np.cos(theta) * radius + center, np.sin(theta) * radius, 'gray', lw=0.5)
-            ax4.plot(np.cos(theta) * radius + center, -np.sin(theta) * radius, 'gray', lw=0.5)
+            if x == 0:
+                continue
+            center_x = 1
+            center_y = 1/x
+            radius = 1/abs(x)
+            circle = plt.Circle((center_x, center_y), radius, fill=False, color='gray', linestyle='--', alpha=0.5)
+            ax4.add_artist(circle)
         
         # 绘制阻抗轨迹
-        ax4.plot(np.real(valid_gamma), np.imag(valid_gamma), 
-                 label='Impedance Locus', color='blue', lw=2)
+        real_part = np.real(valid_gamma)
+        imag_part = np.imag(valid_gamma)
+        ax4.plot(real_part, imag_part, 'b-', linewidth=2, label='Impedance Locus')
         
-        # 标记典型频率点
+        # 绘制典型频率点
         valid_typical_indices = []
-        valid_typical_gamma = []
-        valid_typical_frequencies = []
+        for i, f in enumerate(typical_frequencies):
+            if f in valid_frequencies:
+                idx = valid_frequencies.index(f)
+                valid_typical_indices.append(idx)
+                ax4.plot(real_part[idx], imag_part[idx], 'ro', markersize=6)
+                ax4.annotate(
+                    format_value(f, 'Hz', special_freq=True),
+                    xy=(real_part[idx], imag_part[idx]),
+                    xytext=(5, 5),
+                    textcoords='offset points',
+                    fontsize=8
+                )
         
-        for i, (f, gamma) in enumerate(zip(typical_frequencies, gamma_combined_typical)):
-            if abs(gamma) <= 1:
-                valid_typical_indices.append(i)
-                valid_typical_gamma.append(gamma)
-                valid_typical_frequencies.append(f)
+        # 绘制谐振点
+        if resonance_freq in valid_frequencies:
+            res_idx = valid_frequencies.index(resonance_freq)
+            ax4.plot(real_part[res_idx], imag_part[res_idx], 'gD', markersize=8, label='Resonant Point')
         
-        if valid_typical_gamma:
-            ax4.scatter(np.real(valid_typical_gamma), np.imag(valid_typical_gamma), 
-                        color='red', zorder=5, label='Typical Frequencies')
-            
-            # 添加频率标签到典型点
-            for i, (f, gamma) in enumerate(zip(valid_typical_frequencies, valid_typical_gamma)):
-                ax4.annotate(f'{format_value(f, "Hz", special_freq=True)}', 
-                            (np.real(gamma), np.imag(gamma)),
-                            textcoords="offset points",
-                            xytext=(0,10),
-                            ha='center',
-                            fontsize=8)
-        
-        # 标记谐振点
-        gamma_resonance = impedance_to_gamma(resonance_impedance)
-        if abs(gamma_resonance) <= 1:
-            ax4.scatter(np.real(gamma_resonance), np.imag(gamma_resonance), 
-                        color='green', s=100, zorder=6, label='Resonant Point')
-        
-        # 设置图表属性 - 保留英文标题和标签
+        # 设置坐标轴范围和标题
         ax4.set_xlim(-1, 1)
         ax4.set_ylim(-1, 1)
         ax4.set_aspect('equal')
-        ax4.set_title(f'Smith Chart ({connection_type})')  # 英文标题
+        ax4.set_title('Smith Chart')
+        ax4.set_xlabel('Real part of Γ')
+        ax4.set_ylabel('Imaginary part of Γ')
+        ax4.grid(True, linestyle='--', alpha=0.7)
         ax4.legend()
-        ax4.grid(False)
+        
+        # 绘制单位圆
+        circle = plt.Circle((0, 0), 1, fill=False, color='black', linestyle='-', alpha=0.7)
+        ax4.add_artist(circle)
         
         # 显示史密斯圆图
         st.pyplot(fig4)
 
-# 帮助和说明
-with st.expander("查看帮助说明"):
-    st.markdown("""
-    ### 使用指南
-    
-    **参数设置**:
-    - 输入电容值和电感值（支持普通小数格式）
-    - 设置电容ESR（等效串联电阻）和电感DCR（直流电阻）
-    - 设置频率范围和典型频率点
-    - 选择元件连接方式（串联或并联）
-    
-    **图表分析**:
-    - 阻抗图：显示阻抗模随频率的变化
-    - 导纳图：显示导纳模随频率的变化
-    - 相位图：显示阻抗相位角随频率的变化
-    - 史密斯圆图：以图形方式表示阻抗匹配情况
-    
-    **计算结果**:
-    - 谐振频率：系统发生谐振的频率点
-    - 谐振阻抗：谐振频率下的阻抗值
-    - 谐振电阻：谐振频率下阻抗的实部
-    - 品质因数Q：衡量谐振电路性能的指标，基于实际阻抗计算
-    
-    ### 关于阻抗计算
-    
-    - 电容阻抗: Zc = ESR - j/(ωC)
-    - 电感阻抗: Zl = DCR + jωL
-    - 串联总阻抗: Z = Zc + Zl
-    - 并联总阻抗: Z = (Zc × Zl)/(Zc + Zl)
-    - 反射系数: Γ = (Z - Z0)/(Z + Z0)，其中Z0通常为50Ω
-    
-    """)
+with tab5:
+    if show_bode_plot:
+        # 创建Bode图
+        fig5, (ax5a, ax5b) = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+        
+        # 绘制幅频响应
+        ax5a.semilogx(bode_frequencies/unit_factor, magnitude_db, 'b-', linewidth=2, label='Magnitude (dB)')
+        
+        # 添加典型频率点
+        ax5a.plot(
+            np.array(typical_frequencies)/unit_factor, 
+            magnitude_db_typical,
+            'ro', markersize=6, label='Typical Frequencies'
+        )
+        
+        # 添加谐振点
+        if resonance_freq in bode_frequencies:
+            res_idx = np.where(bode_frequencies == resonance_freq)[0][0]
+            ax5a.plot(
+                resonance_freq/unit_factor, 
+                magnitude_db[res_idx],
+                'gD', markersize=8, label='Resonant Point'
+            )
+            ax5a.annotate(
+                f"{magnitude_db[res_idx]:.2f} dB",
+                xy=(resonance_freq/unit_factor, magnitude_db[res_idx]),
+                xytext=(10, 10),
+                textcoords='offset points',
+                arrowprops=dict(arrowstyle='->', color='green')
+            )
+        
+        # 设置幅频响应图属性
+        ax5a.set_title('Bode Plot - Magnitude Response')
+        ax5a.set_ylabel('Magnitude (dB)')
+        ax5a.grid(True, which='both', linestyle='--', alpha=0.5)
+        ax5a.legend()
+        
+        # 绘制相频响应
+        ax5b.semilogx(bode_frequencies/unit_factor, phase_deg, 'r-', linewidth=2, label='Phase (deg)')
+        
+        # 添加典型频率点
+        ax5b.plot(
+            np.array(typical_frequencies)/unit_factor, 
+            phase_deg_typical,
+            'bo', markersize=6, label='Typical Frequencies'
+        )
+        
+        # 添加谐振点
+        if resonance_freq in bode_frequencies:
+            res_idx = np.where(bode_frequencies == resonance_freq)[0][0]
+            ax5b.plot(
+                resonance_freq/unit_factor, 
+                phase_deg[res_idx],
+                'gD', markersize=8, label='Resonant Point'
+            )
+            ax5b.annotate(
+                f"{phase_deg[res_idx]:.2f}°",
+                xy=(resonance_freq/unit_factor, phase_deg[res_idx]),
+                xytext=(10, 10),
+                textcoords='offset points',
+                arrowprops=dict(arrowstyle='->', color='green')
+            )
+        
+        # 设置相频响应图属性
+        ax5b.set_title('Bode Plot - Phase Response')
+        ax5b.set_xlabel(f'Frequency ({freq_scale})')
+        ax5b.set_ylabel('Phase (deg)')
+        ax5b.grid(True, which='both', linestyle='--', alpha=0.5)
+        ax5b.legend()
+        
+        # 调整布局
+        plt.tight_layout()
+        
+        # 显示Bode图
+        st.pyplot(fig5)
 
-# 页脚
-st.markdown("---")
-st.caption("阻抗计算器 | 专业电子工程工具")
+# 提供下载数据的选项
+if st.button("下载计算数据"):
+    # 创建数据框
+    data = []
+    for f, z, y, gamma, phase in zip(frequencies, Z_combined, Y_combined, gamma_combined, phase_combined):
+        data.append({
+            "Frequency (Hz)": f,
+            "Impedance Real (Ω)": np.real(z),
+            "Impedance Imaginary (Ω)": np.imag(z),
+            "Impedance Magnitude (Ω)": np.abs(z),
+            "Admittance Real (S)": np.real(y),
+            "Admittance Imaginary (S)": np.imag(y),
+            "Admittance Magnitude (S)": np.abs(y),
+            "Reflection Coefficient Real": np.real(gamma),
+            "Reflection Coefficient Imaginary": np.imag(gamma),
+            "Reflection Coefficient Magnitude": np.abs(gamma),
+            "Phase (deg)": phase
+        })
+    
+    df = pd.DataFrame(data)
+    
+    # 创建CSV文件并提供下载
+    csv = df.to_csv(sep='\t', na_rep='nan')
+    st.download_button(
+        label="下载数据 (CSV)",
+        data=csv,
+        file_name="impedance_calculation_data.csv",
+        mime="text/tab-separated-values"
+    )    
