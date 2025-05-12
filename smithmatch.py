@@ -134,7 +134,7 @@ def plot_smith_chart(ax, impedances=None, annotations=None, plot_curve=False, Z_
     ax.annotate('OPEN (∞)', (1, 0), textcoords="offset points", 
                 xytext=(0,15), ha='center', fontsize=10)
     ax.plot(-1, 0, 'bo', markersize=8)
-    ax.annotate('CLOSE' (0)', (-1, 0), textcoords="offset points", 
+    ax.annotate('CLOSE (0)', (-1, 0), textcoords="offset points", 
                 xytext=(0,15), ha='center', fontsize=10)
     
     # 绘制阻抗点和匹配曲线
