@@ -128,13 +128,13 @@ def plot_smith_chart(ax, impedances=None, annotations=None, plot_curve=False, Z_
     
     # 标记原点(匹配点)和开路、短路点
     ax.plot(0, 0, 'ro', markersize=8)
-    ax.annotate(f'匹配点 ({Z_ref:.1f},0)', (0, 0), textcoords="offset points", 
+    ax.annotate(f'match point ({Z_ref:.1f},0)', (0, 0), textcoords="offset points", 
                 xytext=(0,15), ha='center', fontsize=10)
     ax.plot(1, 0, 'go', markersize=8)
-    ax.annotate('开路 (∞)', (1, 0), textcoords="offset points", 
+    ax.annotate('OPEN (∞)', (1, 0), textcoords="offset points", 
                 xytext=(0,15), ha='center', fontsize=10)
     ax.plot(-1, 0, 'bo', markersize=8)
-    ax.annotate('短路 (0)', (-1, 0), textcoords="offset points", 
+    ax.annotate('CLOSE' (0)', (-1, 0), textcoords="offset points", 
                 xytext=(0,15), ha='center', fontsize=10)
     
     # 绘制阻抗点和匹配曲线
@@ -143,7 +143,7 @@ def plot_smith_chart(ax, impedances=None, annotations=None, plot_curve=False, Z_
         source_impedance = impedances[0]
         gamma_source = calculate_gamma(source_impedance, Z_ref)
         ax.plot(gamma_source.real, gamma_source.imag, 'o', color='blue', markersize=10)
-        ax.annotate(f"负载: {source_impedance.real:.1f}+j{source_impedance.imag:.1f}Ω", 
+        ax.annotate(f"RL: {source_impedance.real:.1f}+j{source_impedance.imag:.1f}Ω", 
                     (gamma_source.real, gamma_source.imag), 
                     textcoords="offset points", xytext=(0,20), ha='center', fontsize=10)
         
@@ -151,7 +151,7 @@ def plot_smith_chart(ax, impedances=None, annotations=None, plot_curve=False, Z_
         if target_impedance:
             gamma_target = calculate_gamma(target_impedance, Z_ref)
             ax.plot(gamma_target.real, gamma_target.imag, 'o', color='purple', markersize=10)
-            ax.annotate(f"目标: {target_impedance.real:.1f}+j{target_impedance.imag:.1f}Ω", 
+            ax.annotate(f"Target: {target_impedance.real:.1f}+j{target_impedance.imag:.1f}Ω", 
                         (gamma_target.real, gamma_target.imag), 
                         textcoords="offset points", xytext=(0,-20), ha='center', fontsize=10)
         
@@ -160,7 +160,7 @@ def plot_smith_chart(ax, impedances=None, annotations=None, plot_curve=False, Z_
             matched_impedance = impedances[-2]
             gamma_matched = calculate_gamma(matched_impedance, Z_ref)
             ax.plot(gamma_matched.real, gamma_matched.imag, 'o', color='green', markersize=10)
-            ax.annotate(f"匹配后: {matched_impedance.real:.1f}+j{matched_impedance.imag:.1f}Ω", 
+            ax.annotate(f"After match: {matched_impedance.real:.1f}+j{matched_impedance.imag:.1f}Ω", 
                         (gamma_matched.real, gamma_matched.imag), 
                         textcoords="offset points", xytext=(0,20), ha='center', fontsize=10)
         
@@ -172,7 +172,7 @@ def plot_smith_chart(ax, impedances=None, annotations=None, plot_curve=False, Z_
             distance = calculate_smith_distance(matched_impedance, target_impedance, Z_ref)
             mid_x = (gamma_matched.real + gamma_target.real) / 2
             mid_y = (gamma_matched.imag + gamma_target.imag) / 2
-            ax.annotate(f"距离: {distance:.6f}", (mid_x, mid_y), 
+            ax.annotate(f"Distance: {distance:.6f}", (mid_x, mid_y), 
                         textcoords="offset points", xytext=(0,10), ha='center', fontsize=9)
         
         # 绘制匹配曲线
@@ -188,13 +188,13 @@ def plot_smith_chart(ax, impedances=None, annotations=None, plot_curve=False, Z_
                     continue
                 gamma = calculate_gamma(Z, Z_ref)
                 ax.plot(gamma.real, gamma.imag, 'o', color='orange', markersize=6)
-                ax.annotate(f"步骤 {i}", (gamma.real, gamma.imag),
+                ax.annotate(f"Index {i}", (gamma.real, gamma.imag),
                             textcoords="offset points", xytext=(0, 10), ha='center', fontsize=9)
     
-    ax.set_title(f'Smith圆图 (参考阻抗 Z0 = {Z_ref}Ω)')
+    ax.set_title(f'Smith Chart (REF RL Z0 = {Z_ref}Ω)')
     ax.grid(True, linestyle='--', alpha=0.7)
-    ax.set_xlabel('反射系数实部')
-    ax.set_ylabel('反射系数虚部')
+    ax.set_xlabel('RL real')
+    ax.set_ylabel('RL img')
     
     return ax
 
