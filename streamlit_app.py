@@ -8,7 +8,7 @@ pages = {
         st.Page("ImpedanceCalculator.py", title="Impedance")
     ],
     "Smith Chart": [
-        st.Page("SmithChart.py", title="Smith Chart") 
+        st.Page("smithmatch.py", title="Smith Chart") 
     ],
     "Unit Calc": [
         st.Page("unitCal.py", title="Unit Calc")
