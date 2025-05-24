@@ -13,6 +13,9 @@ pages = {
     "Unit Calc": [
         st.Page("unitCal.py", title="Unit Calc")
     ],
+    "Snubber":[
+        st.Page("snubber.py", title="Snubber")
+    ],
     "TO DO OR NOT TO DO": [
         st.Page("DOORNOTTODO.py", title="DO OR NOT TO DO")
     ]
