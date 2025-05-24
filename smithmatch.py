@@ -2,7 +2,6 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
-import matplotlib.transforms as transforms
 import pandas as pd
 
 # 设置中文字体
@@ -31,7 +30,7 @@ UNIT_PREFIXES = {
 COMPONENT_DEFAULTS = {
     '电感': {
         'min': 0.1,
-        'max': 1000.0,  # 滑动条最大值调整为1000
+        'max': 1000.0,
         'step': 0.1,
         'prefixes': ['pH', 'nH', 'μH', 'mH', 'H'],
         'prefix_default': 'n',
@@ -39,7 +38,7 @@ COMPONENT_DEFAULTS = {
     },
     '电容': {
         'min': 0.1,
-        'max': 1000.0,  # 滑动条最大值调整为1000
+        'max': 1000.0,
         'step': 0.1,
         'prefixes': ['fF', 'pF', 'nF', 'μF', 'mF'],
         'prefix_default': 'p',
@@ -49,11 +48,8 @@ COMPONENT_DEFAULTS = {
 
 def complex_input(label, default_real=50.0, default_imag=0.0):
     """创建复数输入组件"""
-    col1, col2 = st.columns(2)
-    with col1:
-        real_part = st.number_input(f"{label} - 实部 (Ω)", value=default_real, format="%f")
-    with col2:
-        imag_part = st.number_input(f"{label} - 虚部 (Ω)", value=default_imag, format="%f")
+    real_part = st.number_input(f"{label} - 实部 (Ω)", value=default_real, format="%f")
+    imag_part = st.number_input(f"{label} - 虚部 (Ω)", value=default_imag, format="%f")
     return complex(real_part, imag_part)
 
 def calculate_gamma(Z, Z_ref=Z0):
@@ -106,21 +102,6 @@ def plot_smith_chart(ax, impedances=None, annotations=None, plot_curve=False, Z_
         radius = 1 / (1 + r)
         circle = Circle(center, radius, fill=False, color='gray', linestyle='-', linewidth=0.5)
         ax.add_patch(circle)   
-    # # 绘制等电导圆（归一化导纳圆）
-    # g_values = [0, 0.2, 0.5, 1, 2, 5, 10]
-    # for g in g_values:
-    #     if g == 0:
-    #         center = (-1, 0)
-    #         radius = 1
-    #     elif g == 1:
-    #         # 电导为1时，圆退化为垂直线x=1
-    #         ax.axvline(x=1, color='gray', linestyle='-', linewidth=0.5)
-    #         continue
-    #     else:
-    #         center = (g / (g - 1), 0)
-    #         radius = 1 / abs(g - 1)
-    #     circle = Circle(center, radius, fill=False, color='gray', linestyle='-', linewidth=0.5)
-    #     ax.add_patch(circle)
     
     # 绘制单位圆
     circle = Circle((0, 0), 1, fill=False, color='black', linestyle='-', linewidth=1)
@@ -128,13 +109,13 @@ def plot_smith_chart(ax, impedances=None, annotations=None, plot_curve=False, Z_
     
     # 标记原点(匹配点)和开路、短路点
     ax.plot(0, 0, 'ro', markersize=8)
-    ax.annotate(f'match point ({Z_ref:.1f},0)', (0, 0), textcoords="offset points", 
+    ax.annotate(f'Match Point ({Z_ref:.1f},0)', (0, 0), textcoords="offset points", 
                 xytext=(0,15), ha='center', fontsize=10)
     ax.plot(1, 0, 'go', markersize=8)
     ax.annotate('OPEN (∞)', (1, 0), textcoords="offset points", 
                 xytext=(0,15), ha='center', fontsize=10)
     ax.plot(-1, 0, 'bo', markersize=8)
-    ax.annotate('CLOSE (0)', (-1, 0), textcoords="offset points", 
+    ax.annotate('SHORT (0)', (-1, 0), textcoords="offset points", 
                 xytext=(0,15), ha='center', fontsize=10)
     
     # 绘制阻抗点和匹配曲线
@@ -266,189 +247,173 @@ def create_slider_with_input(label, min_value, max_value, value, step, key, pref
     def update_input():
         st.session_state[f"{key}_value"] = st.session_state[f"{key}_slider"]
     
-    col1, col2, col3 = st.columns([3, 1, 1])
+    slider_value = st.slider(
+        label,
+        min_value=min_value,
+        max_value=max_value,
+        value=st.session_state[f"{key}_value"],
+        step=step,
+        key=f"{key}_slider",
+        on_change=update_input
+    )
     
-    with col1:
-        slider_value = st.slider(
-            label,
-            min_value=min_value,
-            max_value=max_value,
-            value=st.session_state[f"{key}_value"],
-            step=step,
-            key=f"{key}_slider",
-            on_change=update_input
-        )
+    input_value = st.number_input(
+        "",
+        min_value=min_value,
+        max_value=max_value,
+        value=st.session_state[f"{key}_value"],
+        step=step,
+        key=f"{key}_input",
+        on_change=update_slider
+    )
     
-    with col2:
-        input_value = st.number_input(
-            "",
-            min_value=min_value,
-            max_value=max_value,
-            value=st.session_state[f"{key}_value"],
-            step=step,
-            key=f"{key}_input",
-            on_change=update_slider
-        )
-    
-    with col3:
-        prefix = st.selectbox(
-            "",
-            prefixes,
-            prefixes.index(default_prefix),
-            key=f"{key}_prefix"
-        )
-        prefix = prefix[0]  # 提取前缀字符（如"n"从"nH"中提取）
+    prefix = st.selectbox(
+        "",
+        prefixes,
+        prefixes.index(default_prefix),
+        key=f"{key}_prefix"
+    )
+    prefix = prefix[0]  # 提取前缀字符（如"n"从"nH"中提取）
     
     return st.session_state[f"{key}_value"], prefix
 
-def main():
-    st.title("阻抗匹配Smith圆图工具")
-    
-    # 侧边栏参数设置
-    st.sidebar.header("参数设置")
-    Z0 = st.sidebar.number_input("参考阻抗 Z0 (Ω)", value=50.0, min_value=1.0, max_value=1000.0, step=1.0, format="%f")
-    frequency = st.sidebar.number_input("工作频率 (MHz)", value=100.0, min_value=0.1, max_value=10000.0, step=0.1, format="%f")
-    frequency_hz = frequency * 1e6  # 转换为Hz
-    
-    # 输入阻抗
-    st.header("输入阻抗")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("负载阻抗")
-        Z_load = complex_input("负载阻抗", 50.0, 50.0)
-    
-    with col2:
-        st.subheader("目标阻抗")
-        Z_target = complex_input("目标阻抗", Z0, 0.0)  # 默认就是自定义，默认值为50
-    
-    st.info(f"当前显示的是目标阻抗 {Z_target.real:.1f} + j{Z_target.imag:.1f} Ω 的Smith圆图")
-    
-    # 计算并显示归一化阻抗和导纳
-    st.subheader("归一化值")
-    z_load = Z_load / Z0
-    z_target = Z_target / Z0
-    y_target = 1 / z_target
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.write(f"归一化负载阻抗: {z_load.real:.4f} + j{z_load.imag:.4f}")
-    with col2:
-        st.write(f"归一化目标阻抗: {z_target.real:.4f} + j{z_target.imag:.4f}")
-        st.write(f"归一化目标导纳: {y_target.real:.4f} + j{y_target.imag:.4f}")
-    
-    # 手动匹配控件
-    st.header("手动匹配")
-    
-    # 选择匹配拓扑结构
-    topology = st.selectbox("匹配拓扑结构", ["串电感并电容", "串电容并电感", "并电感串电容", "并电容串电感"])
-    
-    # 解析拓扑结构
-    if topology == "串电感并电容":
-        components = [
-            {'connection': '串联', 'type': '电感'},
-            {'connection': '并联', 'type': '电容'}
-        ]
-    elif topology == "串电容并电感":
-        components = [
-            {'connection': '串联', 'type': '电容'},
-            {'connection': '并联', 'type': '电感'}
-        ]
-    elif topology == "并电感串电容":
-        components = [
-            {'connection': '并联', 'type': '电感'},
-            {'connection': '串联', 'type': '电容'}
-        ]
-    else:  # 并电容串电感
-        components = [
-            {'connection': '并联', 'type': '电容'},
-            {'connection': '串联', 'type': '电感'}
-        ]
-    
-    # 滑动条上面的标题只写电感、电容
-    st.subheader("电感")
-    inductor_defaults = COMPONENT_DEFAULTS['电感']
-    inductor_value, inductor_prefix = create_slider_with_input(
-        "电感值",
-        min_value=inductor_defaults['min'],
-        max_value=inductor_defaults['max'],
-        value=10.0,
-        step=inductor_defaults['step'],
-        key="inductor",
-        prefixes=inductor_defaults['prefixes'],
-        default_prefix=inductor_defaults['prefix_default'] + inductor_defaults['unit']
-    )
-    inductor_value = inductor_value * UNIT_PREFIXES[inductor_prefix]
-    
-    st.subheader("电容")
-    capacitor_defaults = COMPONENT_DEFAULTS['电容']
-    capacitor_value, capacitor_prefix = create_slider_with_input(
-        "电容值",
-        min_value=capacitor_defaults['min'],
-        max_value=capacitor_defaults['max'],
-        value=10.0,
-        step=capacitor_defaults['step'],
-        key="capacitor",
-        prefixes=capacitor_defaults['prefixes'],
-        default_prefix=capacitor_defaults['prefix_default'] + capacitor_defaults['unit']
-    )
-    capacitor_value = capacitor_value * UNIT_PREFIXES[capacitor_prefix]
-    
-    # 更新组件值
-    for i, comp in enumerate(components):
-        if comp['type'] == '电感':
-            components[i]['value'] = inductor_value
-        else:
-            components[i]['value'] = capacitor_value
-    
-    # 匹配过程Smith圆图标题
-    st.header("匹配过程Smith圆图")
+st.title("阻抗匹配Smith圆图工具")
 
-    # 计算添加元件后的阻抗
-    Z_after_first = calculate_impedance(Z_load, [components[0]], frequency_hz)
-    Z_final = calculate_impedance(Z_load, components, frequency_hz)
-    
-    # 计算反射系数和VSWR
-    gamma_load = calculate_gamma(Z_load, Z0)
-    gamma_after_first = calculate_gamma(Z_after_first, Z0)
-    gamma_final = calculate_gamma(Z_final, Z0)
-    
-    vswr_load = calculate_vswr(gamma_load)
-    vswr_after_first = calculate_vswr(gamma_after_first)
-    vswr_final = calculate_vswr(gamma_final)
-    
-    # 显示匹配结果
-    st.header("匹配结果")
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.write("**负载阻抗**")
-        st.write(f"{Z_load.real:.4f} + j{Z_load.imag:.4f} Ω")
-        st.write(f"VSWR: {vswr_load:.4f}")
-    with col2:
-        st.write("**添加第一个元件后**")
-        st.write(f"{components[0]['connection']}{components[0]['type']}: " 
-                 f"{format_value(components[0]['value'], 'L' if components[0]['type'] == '电感' else 'C', inductor_prefix if components[0]['type'] == '电感' else capacitor_prefix)}")
-        st.write(f"{Z_after_first.real:.4f} + j{Z_after_first.imag:.4f} Ω")
-        st.write(f"VSWR: {vswr_after_first:.4f}")
-    with col3:
-        st.write("**添加第二个元件后**")
-        st.write(f"{components[1]['connection']}{components[1]['type']}: " 
-                 f"{format_value(components[1]['value'], 'L' if components[1]['type'] == '电感' else 'C', inductor_prefix if components[1]['type'] == '电感' else capacitor_prefix)}")
-        st.write(f"{Z_final.real:.4f} + j{Z_final.imag:.4f} Ω")
-        st.write(f"VSWR: {vswr_final:.4f}")
-    
-    # 计算与目标的误差
-    error = calculate_euclidean_distance(Z_final, Z_target)
-    st.write(f"与目标阻抗的欧拉距离误差: {error:.8f} Ω")
-    
-    # 构建完整的阻抗点列表用于绘制匹配路径
-    impedance_points = [Z_load, Z_after_first, Z_final, Z_target]
-    
-    # 绘制匹配过程的Smith圆图
-    fig, ax = plt.subplots(figsize=(10, 10))
-    plot_smith_chart(ax, impedance_points, plot_curve=True, Z_ref=Z0)
-    st.pyplot(fig)
-    
-if __name__ == "__main__":
-    main()    
+# 侧边栏参数设置
+st.sidebar.header("参数设置")
+Z0 = st.sidebar.number_input("参考阻抗 Z0 (Ω)", value=50.0, min_value=1.0, max_value=1000.0, step=1.0, format="%f")
+frequency = st.sidebar.number_input("工作频率 (MHz)", value=100.0, min_value=0.1, max_value=10000.0, step=0.1, format="%f")
+frequency_hz = frequency * 1e6  # 转换为Hz
+
+# 输入阻抗
+st.header("输入阻抗")
+
+st.subheader("负载阻抗")
+Z_load = complex_input("负载阻抗", 50.0, 50.0)
+
+st.subheader("目标阻抗")
+Z_target = complex_input("目标阻抗", Z0, 0.0)  # 默认就是自定义，默认值为50
+
+st.info(f"当前显示的是目标阻抗 {Z_target.real:.1f} + j{Z_target.imag:.1f} Ω 的Smith圆图")
+
+# 计算并显示归一化阻抗和导纳
+st.subheader("归一化值")
+z_load = Z_load / Z0
+z_target = Z_target / Z0
+y_target = 1 / z_target
+
+st.write(f"归一化负载阻抗: {z_load.real:.4f} + j{z_load.imag:.4f}")
+st.write(f"归一化目标阻抗: {z_target.real:.4f} + j{z_target.imag:.4f}")
+st.write(f"归一化目标导纳: {y_target.real:.4f} + j{y_target.imag:.4f}")
+
+# 手动匹配控件
+st.header("手动匹配")
+
+# 选择匹配拓扑结构
+topology = st.selectbox("匹配拓扑结构", ["串电感并电容", "串电容并电感", "并电感串电容", "并电容串电感"])
+
+# 解析拓扑结构
+if topology == "串电感并电容":
+    components = [
+        {'connection': '串联', 'type': '电感'},
+        {'connection': '并联', 'type': '电容'}
+    ]
+elif topology == "串电容并电感":
+    components = [
+        {'connection': '串联', 'type': '电容'},
+        {'connection': '并联', 'type': '电感'}
+    ]
+elif topology == "并电感串电容":
+    components = [
+        {'connection': '并联', 'type': '电感'},
+        {'connection': '串联', 'type': '电容'}
+    ]
+else:  # 并电容串电感
+    components = [
+        {'connection': '并联', 'type': '电容'},
+        {'connection': '串联', 'type': '电感'}
+    ]
+
+# 滑动条上面的标题只写电感、电容
+st.subheader("电感")
+inductor_defaults = COMPONENT_DEFAULTS['电感']
+inductor_value, inductor_prefix = create_slider_with_input(
+    "电感值",
+    min_value=inductor_defaults['min'],
+    max_value=inductor_defaults['max'],
+    value=10.0,
+    step=inductor_defaults['step'],
+    key="inductor",
+    prefixes=inductor_defaults['prefixes'],
+    default_prefix=inductor_defaults['prefix_default'] + inductor_defaults['unit']
+)
+inductor_value = inductor_value * UNIT_PREFIXES[inductor_prefix]
+
+st.subheader("电容")
+capacitor_defaults = COMPONENT_DEFAULTS['电容']
+capacitor_value, capacitor_prefix = create_slider_with_input(
+    "电容值",
+    min_value=capacitor_defaults['min'],
+    max_value=capacitor_defaults['max'],
+    value=10.0,
+    step=capacitor_defaults['step'],
+    key="capacitor",
+    prefixes=capacitor_defaults['prefixes'],
+    default_prefix=capacitor_defaults['prefix_default'] + capacitor_defaults['unit']
+)
+capacitor_value = capacitor_value * UNIT_PREFIXES[capacitor_prefix]
+
+# 更新组件值
+for i, comp in enumerate(components):
+    if comp['type'] == '电感':
+        components[i]['value'] = inductor_value
+    else:
+        components[i]['value'] = capacitor_value
+
+# 匹配过程Smith圆图标题
+st.header("匹配过程Smith圆图")
+
+# 计算添加元件后的阻抗
+Z_after_first = calculate_impedance(Z_load, [components[0]], frequency_hz)
+Z_final = calculate_impedance(Z_load, components, frequency_hz)
+
+# 计算反射系数和VSWR
+gamma_load = calculate_gamma(Z_load, Z0)
+gamma_after_first = calculate_gamma(Z_after_first, Z0)
+gamma_final = calculate_gamma(Z_final, Z0)
+
+vswr_load = calculate_vswr(gamma_load)
+vswr_after_first = calculate_vswr(gamma_after_first)
+vswr_final = calculate_vswr(gamma_final)
+
+# 显示匹配结果
+st.header("匹配结果")
+
+st.write("**负载阻抗**")
+st.write(f"{Z_load.real:.4f} + j{Z_load.imag:.4f} Ω")
+st.write(f"VSWR: {vswr_load:.4f}")
+
+st.write("**添加第一个元件后**")
+st.write(f"{components[0]['connection']}{components[0]['type']}: " 
+            f"{format_value(components[0]['value'], 'L' if components[0]['type'] == '电感' else 'C', inductor_prefix if components[0]['type'] == '电感' else capacitor_prefix)}")
+st.write(f"{Z_after_first.real:.4f} + j{Z_after_first.imag:.4f} Ω")
+st.write(f"VSWR: {vswr_after_first:.4f}")
+
+st.write("**添加第二个元件后**")
+st.write(f"{components[1]['connection']}{components[1]['type']}: " 
+            f"{format_value(components[1]['value'], 'L' if components[1]['type'] == '电感' else 'C', inductor_prefix if components[1]['type'] == '电感' else capacitor_prefix)}")
+st.write(f"{Z_final.real:.4f} + j{Z_final.imag:.4f} Ω")
+st.write(f"VSWR: {vswr_final:.4f}")
+
+# 计算与目标的误差
+error = calculate_euclidean_distance(Z_final, Z_target)
+st.write(f"与目标阻抗的欧拉距离误差: {error:.8f} Ω")
+
+# 构建完整的阻抗点列表用于绘制匹配路径
+impedance_points = [Z_load, Z_after_first, Z_final, Z_target]
+
+# 绘制匹配过程的Smith圆图
+fig, ax = plt.subplots(figsize=(10, 10))
+plot_smith_chart(ax, impedance_points, plot_curve=True, Z_ref=Z0)
+st.pyplot(fig)
+
