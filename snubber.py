@@ -25,11 +25,11 @@ def format_value(value, prefixes=['p', 'n', 'μ', 'm', '', 'k', 'M', 'G']):
         return f"{scaled_value:.2f} {prefix}"
 
 # 计算方法选择（下拉选项框）
-method = st.selectbox("选择计算方法", ["方法1：使用LCR表测量Cpar", "方法2：仅使用示波器"])
+method = st.selectbox("选择计算方法", ["LCR测分布电容", "示波器测振荡频率"])
 
-# 方法1：使用LCR表测量Cpar
-if method == "方法1：使用LCR表测量Cpar":
-    st.subheader("方法1：使用LCR表测量Cpar")
+# LCR测分布电容
+if method == "LCR测分布电容":
+    st.subheader("LCR测分布电容")
     
     # 水平布局输入框
     col1, col2, col3, col4 = st.columns(4)
@@ -70,7 +70,7 @@ if method == "方法1：使用LCR表测量Cpar":
         p_max = fs * c_max * v_peak ** 2
     
     # 显示计算结果 - 水平布局
-    st.header("计算结果 (方法1)")
+    st.header("计算结果")
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     
     with col1:
@@ -86,9 +86,9 @@ if method == "方法1：使用LCR表测量Cpar":
     with col6:
         st.metric("电阻功率", f"{format_value(p_min)}W ~ {format_value(p_max)}W")
 
-# 方法2：仅使用示波器
+# 示波器测振荡频率
 else:
-    st.subheader("方法2：仅使用示波器")
+    st.subheader("示波器测振荡频率")
     
     # 水平布局输入框
     col1, col2, col3, col4 = st.columns(4)
@@ -132,7 +132,7 @@ else:
         p = fs * c * v_peak ** 2
     
     # 显示计算结果 - 水平布局
-    st.header("计算结果 (方法2)")
+    st.header("计算结果")
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     
     with col1:
@@ -155,7 +155,7 @@ st.header("波形模拟")
 t = np.linspace(0, 5/fr1, 1000)  # 显示5个振荡周期
 
 # 根据不同方法设置阻尼系数
-if method == "方法1：使用LCR表测量Cpar":
+if method == "LCR测分布电容":
     damping_factor = 1/(2*r*c_min)
 else:
     damping_factor = 1/(2*r*c)
@@ -164,7 +164,7 @@ else:
 lc_oscillation = np.exp(-t*damping_factor) * np.sin(2*np.pi*fr1*t)  # 带阻尼的正弦波
 
 # 模拟RC对LC振荡的衰减效果
-if method == "方法1：使用LCR表测量Cpar":
+if method == "LCR测分布电容":
     # 使用方法1的RC值
     rc_impedance = r / np.sqrt(1 + (2*np.pi*fr1*r*c_min)**2)
     attenuation_factor = rc_impedance / r
@@ -209,8 +209,11 @@ def calculate_rc_response(r, c, omega):
     phase = np.degrees(np.angle(h))  # 转换为度
     return magnitude, phase
 
+# 开关频率（转换为MHz）
+fs_mhz = fs_khz / 1000
+
 # 根据选择的方法使用不同的RC值
-if method == "方法1：使用LCR表测量Cpar":
+if method == "LCR测分布电容":
     # 使用方法1的RC值（范围值）
     magnitude_min, phase_min = calculate_rc_response(r, c_min, omega)
     magnitude_max, phase_max = calculate_rc_response(r, c_max, omega)
@@ -222,6 +225,7 @@ if method == "方法1：使用LCR表测量Cpar":
     ax1.semilogx(freq_mhz, magnitude_min, 'b-', label=f'C = {format_value(c_min)}F')
     ax1.semilogx(freq_mhz, magnitude_max, 'r--', label=f'C = {format_value(c_max)}F')
     ax1.axvline(x=fr1_mhz, color='g', linestyle=':', label=f'fr1 = {format_value(fr1_mhz)}MHz')
+    ax1.axvline(x=fs_mhz, color='m', linestyle='--', label=f'fs = {format_value(fs_mhz)}MHz')
     ax1.set_title('Magnitude Response')
     ax1.set_ylabel('Gain (dB)')
     ax1.grid(True, which="both", ls="-")
@@ -231,6 +235,7 @@ if method == "方法1：使用LCR表测量Cpar":
     ax2.semilogx(freq_mhz, phase_min, 'b-', label=f'C = {format_value(c_min)}F')
     ax2.semilogx(freq_mhz, phase_max, 'r--', label=f'C = {format_value(c_max)}F')
     ax2.axvline(x=fr1_mhz, color='g', linestyle=':', label=f'fr1 = {format_value(fr1_mhz)}MHz')
+    ax2.axvline(x=fs_mhz, color='m', linestyle='--', label=f'fs = {format_value(fs_mhz)}MHz')
     ax2.set_title('Phase Response')
     ax2.set_xlabel('Frequency (MHz)')
     ax2.set_ylabel('Phase (degrees)')
@@ -246,6 +251,7 @@ else:
     # 幅度响应
     ax1.semilogx(freq_mhz, magnitude, 'b-', label=f'C = {format_value(c)}F')
     ax1.axvline(x=fr1_mhz, color='g', linestyle=':', label=f'fr1 = {format_value(fr1_mhz)}MHz')
+    ax1.axvline(x=fs_mhz, color='m', linestyle='--', label=f'fs = {format_value(fs_mhz)}MHz')
     ax1.set_title('Magnitude Response')
     ax1.set_ylabel('Gain (dB)')
     ax1.grid(True, which="both", ls="-")
@@ -254,6 +260,7 @@ else:
     # 相位响应
     ax2.semilogx(freq_mhz, phase, 'b-', label=f'C = {format_value(c)}F')
     ax2.axvline(x=fr1_mhz, color='g', linestyle=':', label=f'fr1 = {format_value(fr1_mhz)}MHz')
+    ax2.axvline(x=fs_mhz, color='m', linestyle='--', label=f'fs = {format_value(fs_mhz)}MHz')
     ax2.set_title('Phase Response')
     ax2.set_xlabel('Frequency (MHz)')
     ax2.set_ylabel('Phase (degrees)')
